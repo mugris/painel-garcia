@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel da Clínica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Clínico claro: fundo branco-gelo, azul-petróleo como única cor de destaque, uma fonte só. Telas com uma ideia principal cada. */
+:root{
+  --bg:#F3F6F7; --surface:#FFFFFF; --surface-2:#F7F9FA; --ink:#0F2730; --muted:#647880; --line:#E2E9EB;
+  --accent:#0E7490; --accent-ink:#FFFFFF; --accent-soft:#E2F1F4;
+  --ok:#17803D; --ok-soft:#E6F4EA; --warn:#B45309; --warn-soft:#FDF2E1; --bad:#C53030; --bad-soft:#FCEBEB;
+  --d1:#0E7490; --d2:#6D5BD0; --d3:#BE4F86; --d4:#2F855A;
+  --font-body:"Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius:16px;
+  color-scheme: light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{margin:0;font-weight:700;letter-spacing:-.02em;text-wrap:balance}
+.num{font-variant-numeric:tabular-nums}
+svg.i{width:16px;height:16px;flex:none;vertical-align:-3px}
+.hidden{display:none!important}
+
+/* botões */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 16px;font-weight:600;font-size:14.5px;text-decoration:none;color:var(--ink)}
+.btn:hover{border-color:#C9D6DA}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.small{padding:7px 12px;font-size:13.5px;border-radius:10px}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--accent)}
+.btn.danger{color:var(--bad)}
+.linkbtn{border:0;background:none;color:var(--accent);font-weight:600;font-size:14px;padding:6px}
+
+/* login */
+.login{min-height:100%;display:grid;place-items:center;padding:24px 16px}
+.lcard{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:32px 24px 24px;box-shadow:0 20px 50px rgba(15,39,48,.06)}
+.lmark{width:48px;height:48px;border-radius:14px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:18px;margin-bottom:18px}
+.lcard h1{font-size:26px}
+.lsub{color:var(--muted);margin:4px 0 22px}
+.lnote{font-size:12.5px;color:var(--muted);margin:18px 0 0;text-align:center}
+.eyebrow{display:none}
+body:not(.logged) .app, body:not(.logged) nav.tabs, body:not(.logged) .fab{display:none!important}
+body.logged .login{display:none}
+
+/* estrutura */
+.app{max-width:720px;margin:0 auto;padding:0 16px 110px}
+header.top{display:flex;align-items:center;gap:12px;padding:18px 0 14px}
+header.top .brand{flex:1;min-width:0}
+header.top h1{font-size:19px}
+header.top h1 em{font-style:normal}
+header.top .sub{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:13px;margin-top:2px}
+.live{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.live.off{background:#A9B6BA}
+.demo-bar{display:none}
+
+/* aviso de urgência */
+.alert{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid #F3C9C9;border-radius:var(--radius);padding:12px 12px 12px 14px;margin-bottom:16px}
+.alert .ic{width:34px;height:34px;border-radius:10px;background:var(--bad-soft);color:var(--bad);display:grid;place-items:center;flex:none}
+.alert .tx{flex:1;min-width:0}
+.alert b{display:block;font-size:14.5px}
+.alert p{margin:1px 0 0;color:var(--muted);font-size:13.5px}
+
+/* semana */
+.week{display:flex;align-items:center;gap:6px;margin-bottom:18px}
+.week .days{display:grid;gap:6px;flex:1}
+.iconbtn{border:0;background:transparent;border-radius:10px;width:30px;height:56px;display:grid;place-items:center;color:var(--muted)}
+.day{border:1px solid transparent;background:transparent;border-radius:14px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.day .dw{font-size:11.5px;color:var(--muted);font-weight:600;text-transform:capitalize}
+.day .dn{font-size:19px;font-weight:700;line-height:1.1}
+.day .dc{display:none}
+.day.today .dw{color:var(--accent)}
+.day.sel{background:var(--accent);color:#fff}
+.day.sel .dw{color:rgba(255,255,255,.8)}
+.day:not(.sel):hover{background:var(--surface)}
+
+/* título do dia */
+.dayhead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:12px}
+.dayhead h2{font-size:22px}
+.dayhead h2 em{font-style:normal}
+.dayhead .meta{color:var(--muted);font-size:13.5px;margin-top:2px;display:block}
+.dsel{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:7px 10px;font-size:13.5px;font-weight:600;max-width:46%}
+
+/* lista do dia */
+.timeline{display:flex;flex-direction:column;gap:8px}
+.now{display:flex;align-items:center;gap:8px;color:var(--bad);font-size:12px;font-weight:700;margin:4px 0}
+.now::after{content:"";flex:1;height:1px;background:var(--bad);opacity:.5}
+.card{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px 14px;position:relative}
+.card::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--stripe)}
+.card:hover{border-color:#C9D6DA}
+.card .t{font-weight:700;font-size:15.5px;font-variant-numeric:tabular-nums}
+.card .bd{min-width:0}
+.card .bd b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .bd span{display:block;color:var(--muted);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .bd span.u{color:var(--bad);font-weight:600}
+.card.past{background:transparent;box-shadow:none}
+.card.past .t,.card.past .bd b{color:var(--muted)}
+.card.flash{animation:flash 2.4s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 0 transparent}}
+.st{font-size:12.5px;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
+.st::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.st.ok{color:var(--ok)} .st.warn{color:var(--warn)} .st.bad{color:var(--bad)}
+.empty{text-align:center;color:var(--muted);padding:40px 16px;border:1px dashed var(--line);border-radius:var(--radius)}
+.hint{color:var(--muted);font-size:13px;text-align:center;margin-top:14px}
+
+/* abas e botão flutuante */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+nav.tabs .in{max-width:720px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+nav.tabs button{border:0;background:none;border-radius:12px;padding:6px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:600;color:var(--muted)}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[aria-current="page"]{color:var(--accent)}
+.fab{position:fixed;right:max(16px,calc(50% - 344px));bottom:86px;z-index:6;border:0;background:var(--accent);color:#fff;border-radius:16px;width:56px;height:56px;display:grid;place-items:center;box-shadow:0 10px 24px rgba(14,116,144,.3);font-size:0}
+.fab svg{width:24px;height:24px}
+
+/* folha de detalhes */
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(15,39,48,.35);display:none;align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+.sheet{background:var(--bg);width:100%;max-width:600px;max-height:92%;overflow:auto;border-radius:22px 22px 0 0;padding:8px 18px 28px}
+@media (min-width:700px){.overlay{align-items:center}.sheet{border-radius:22px;max-height:88%}}
+.grab{width:40px;height:4px;border-radius:4px;background:#CBD6D9;margin:4px auto 12px}
+.sheet .hd{display:flex;align-items:flex-start;gap:10px;margin-bottom:4px}
+.sheet .hd h3{font-size:22px;flex:1}
+.sheet .x{border:0;background:var(--surface);border-radius:50%;width:34px;height:34px;display:grid;place-items:center;flex:none;color:var(--muted)}
+.sline{color:var(--muted);margin:0 0 14px;font-size:14.5px}
+.infobox{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:4px 14px;margin-bottom:14px}
+.infobox .r{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:14.5px}
+.infobox .r:first-child{border-top:0}
+.infobox .r span{color:var(--muted)}
+.infobox .r b{font-weight:600;text-align:right}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.actions .full{grid-column:1/-1}
+.more{display:flex;justify-content:center;gap:4px;margin-top:6px}
+.sec{font-size:13px;font-weight:700;color:var(--muted);margin:20px 0 8px}
+details.conv{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin-top:16px}
+details.conv summary{list-style:none;cursor:pointer;padding:13px 14px;font-weight:600;display:flex;align-items:center;gap:8px}
+details.conv summary::-webkit-details-marker{display:none}
+details.conv summary .c{margin-left:auto;color:var(--muted);font-weight:500;font-size:13px}
+details.conv[open] summary{border-bottom:1px solid var(--line)}
+.chat{padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--surface-2);border-radius:0 0 var(--radius) var(--radius)}
+.msg{max-width:84%;padding:8px 11px;border-radius:14px;font-size:14px}
+.msg small{display:block;font-size:11px;color:var(--muted);margin-top:3px;text-align:right}
+.msg.paciente{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg.agente{align-self:flex-end;background:var(--accent-soft);border-bottom-right-radius:4px}
+.msg.equipe{align-self:flex-end;background:var(--warn-soft);border-bottom-right-radius:4px}
+.msg .who{font-size:11px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:4px;margin-bottom:2px}
+.msg .aud{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--accent);font-weight:600;margin-bottom:3px}
+.msg .aud i{flex:1;height:12px;min-width:50px;background:repeating-linear-gradient(90deg,var(--accent) 0 2px,transparent 2px 5px);opacity:.4}
+.daysep{align-self:center;font-size:11px;color:var(--muted)}
+.toggle{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin-top:8px}
+.toggle .tx{flex:1}
+.toggle .tx b{display:block;font-weight:600}
+.toggle .tx span{font-size:13px;color:var(--muted)}
+.sw{appearance:none;width:44px;height:26px;border-radius:999px;background:#CBD6D9;position:relative;flex:none;cursor:pointer;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.sw:checked{background:var(--accent)}
+.sw:checked::after{transform:translateX(18px)}
+.reply{display:flex;gap:8px;margin-top:8px}
+.reply input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 14px}
+.note{font-size:12.5px;color:var(--muted);margin-top:6px}
+
+/* formulários */
+.form{display:grid;gap:12px}
+.form label{display:grid;gap:5px;font-size:13px;font-weight:600;color:var(--muted)}
+.form input,.form select{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 13px;font-size:15px;color:var(--ink);font-weight:500}
+.form input:focus,.form select:focus,.search:focus,.per input:focus,.reply input:focus,.addrow input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.form .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form .err,.err{color:var(--bad);font-size:13px;min-height:1em}
+.form label.toggle{display:flex;color:var(--ink);margin:0}
+
+/* pacientes */
+.search{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;margin:0 0 12px;font-size:15px}
+.plist{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.prow{display:flex;align-items:center;gap:12px;background:transparent;border:0;border-top:1px solid var(--line);padding:12px 14px;text-align:left;width:100%}
+.prow:first-child{border-top:0}
+.prow:hover{background:var(--surface-2)}
+.av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13.5px;background:var(--accent-soft);color:var(--accent);flex:none}
+.prow .tx{flex:1;min-width:0}
+.prow .tx b{display:block;font-weight:600}
+.prow .tx span{font-size:13px;color:var(--muted)}
+.prow .rt{text-align:right;font-size:12.5px;color:var(--muted);white-space:nowrap}
+.prow .rt b{display:block;color:var(--ink);font-size:13.5px;font-weight:600}
+
+/* resumo */
+.hero{background:var(--accent);color:#fff;border-radius:20px;padding:20px;margin-bottom:12px}
+.hero span{display:block;font-size:14px;opacity:.85}
+.hero b{display:block;font-size:40px;line-height:1.1;font-weight:800;letter-spacing:-.03em;margin:6px 0 2px}
+.hero small{font-size:13.5px;opacity:.85}
+.hero .tk{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;opacity:.95}
+.hero input{width:80px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;padding:5px 8px}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.mini{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+.mini b{display:block;font-size:22px;font-weight:800;letter-spacing:-.02em}
+.mini span{font-size:12.5px;color:var(--muted);line-height:1.3;display:block}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.panel h3{font-size:16px;margin-bottom:2px}
+.panel p.d{margin:0 0 14px;color:var(--muted);font-size:13.5px}
+.hours{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;align-items:end;height:120px;border-bottom:1px solid var(--line)}
+.hours div{background:#D5E1E4;border-radius:3px 3px 0 0;min-height:2px}
+.hours div.off{background:var(--accent)}
+.haxis{display:grid;grid-template-columns:repeat(24,1fr);font-size:10.5px;color:var(--muted);margin-top:4px}
+.haxis span{text-align:center}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* ajustes */
+.cfg{display:flex;flex-direction:column;gap:12px}
+.cfg .panel{margin:0}
+.dias{display:flex;flex-wrap:wrap;gap:6px}
+.dias label{display:inline-flex!important;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:7px 11px;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer}
+.dias input{accent-color:var(--accent)}
+.per{display:grid;grid-template-columns:64px 1fr 1fr;gap:8px;align-items:center;font-size:13.5px;font-weight:600;color:var(--muted)}
+.per input{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 10px;color:var(--ink);font-size:15px}
+.dlist{display:flex;flex-direction:column;gap:6px}
+.drow{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.drow i{width:10px;height:10px;border-radius:50%;flex:none}
+.drow span{flex:1;font-weight:600}
+.addrow{display:flex;gap:8px}
+.addrow input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 12px}
+.savebar{position:sticky;bottom:72px;display:flex;gap:10px;align-items:center;background:var(--bg);padding:10px 0}
+.savebar .note{flex:1;margin:0}
+
+/* aviso flutuante */
+.toast{position:fixed;left:50%;top:14px;transform:translate(-50%,-220%);visibility:hidden;z-index:30;background:var(--ink);color:#fff;border-radius:14px;padding:11px 12px 11px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(15,39,48,.25);transition:transform .35s ease;max-width:calc(100% - 32px);font-size:14px}
+.toast.show{transform:translate(-50%,0);visibility:visible}
+.toast .btn{background:transparent;color:#fff;border-color:rgba(255,255,255,.35)}
+.toast.urg{background:var(--bad)}
+.demo-tag{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--warn);background:var(--warn-soft);border-radius:6px;padding:2px 6px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.card .rt{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.card .rt small{font-size:12px;color:var(--muted);white-space:nowrap}
+.vrow{display:grid;grid-template-columns:1fr 120px;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.vrow:first-child{border-top:0}
+.vrow input{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 10px;text-align:right;width:100%}
+.vin{width:110px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;text-align:right;background:var(--surface)}
+.tipos .r b{font-variant-numeric:tabular-nums}
+.mnav{display:flex;gap:6px}
+.aviso{background:var(--warn-soft);border-radius:14px;padding:12px 14px;font-size:14px;margin-bottom:12px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+.loading{padding:40px 0;text-align:center;color:var(--muted)}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<section class="login" id="login" aria-labelledby="loginTitle">
+  <div class="lcard">
+    <div class="lmark" aria-hidden="true">OG</div>
+    <span class="eyebrow"><i></i>Agente online 24h</span>
+    <h1 id="loginTitle">Odontologia <em>Garcia</em></h1>
+    <p class="lsub">Painel da recepção</p>
+    <form class="form" id="loginForm" novalidate>
+      <label for="lEmail">E-mail<input id="lEmail" type="email" autocomplete="username" placeholder="recepcao@suaclinica.com.br"></label>
+      <label for="lSenha">Senha<input id="lSenha" type="password" autocomplete="current-password"></label>
+      <div class="err" id="lErr"></div>
+      <button class="btn primary" type="button" data-enviar style="justify-content:center">Entrar</button>
+      <button class="linkbtn" type="button" id="esqueci">Esqueci minha senha</button>
+    </form>
+    <form class="form hidden" id="senhaForm" novalidate>
+      <p class="lsub" style="margin:0">Crie sua senha para entrar no painel.</p>
+      <label for="nSenha1">Nova senha<input id="nSenha1" type="password" autocomplete="new-password" minlength="8"></label>
+      <label for="nSenha2">Repita a senha<input id="nSenha2" type="password" autocomplete="new-password"></label>
+      <div class="err" id="sErr"></div>
+      <button class="btn primary" type="button" data-enviar style="justify-content:center">Salvar senha e entrar</button>
+    </form>
+    <p class="lnote" id="lNote">Acesso só para a equipe da clínica.</p>
+  </div>
+</section>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1 id="nomeClinica">Odontologia <em>Garcia</em></h1>
+      <div class="sub"><span class="live" id="liveDot" aria-hidden="true"></span><span id="agentStatus">Conectando…</span></div>
+    </div>
+  </header>
+
+  <main id="view"></main>
+</div>
+
+<button class="fab" id="fab" aria-label="Nova consulta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Nova consulta</button>
+
+<nav class="tabs" aria-label="Seções">
+  <div class="in">
+    <button data-tab="agenda" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>Agenda</button>
+    <button data-tab="pacientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c2 .6 3.2 2.3 3.5 5.2"/></svg>Pacientes</button>
+    <button data-tab="resumo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Resumo</button>
+    <button data-tab="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Ajustes</button>
+  </div>
+</nav>
+
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+/* Envia formulários por clique e Enter, sem depender do envio nativo (bloqueado em visualizadores) */
+function aoEnviar(form, fn){
+  form.addEventListener('submit', e => { e.preventDefault(); fn(); });
+  const b = form.querySelector('[data-enviar]'); if (b) b.addEventListener('click', fn);
+  form.addEventListener('keydown', e => { if (e.key==='Enter' && e.target.tagName==='INPUT'){ e.preventDefault(); fn(); } });
+}
+/* ---------- utilidades ---------- */
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,'0');
+const hm = d => pad(d.getHours())+':'+pad(d.getMinutes());
+const sod = d => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
+const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+const addMin = (d,m) => new Date(d.getTime()+m*60000);
+const sameDay = (a,b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtLongo = d => d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+const fmtCurto = d => d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}).replace('.','');
+const dw = d => d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');
+const brl = n => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+const foraHorario = d => d.getDay()===0 || d.getDay()===6 || d.getHours()<8 || d.getHours()>=19;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+const rng = mulberry32(20261117);
+const pick = arr => arr[Math.floor(rng()*arr.length)];
+function relTempo(d){
+  const m = Math.round((Date.now()-d.getTime())/60000);
+  if (m < 1) return 'agora';
+  if (m < 60) return `há ${m} min`;
+  const h = Math.round(m/60);
+  if (h < 24) return `há ${h} h`;
+  const dd = Math.round(h/24);
+  return dd===1 ? 'ontem' : `há ${dd} dias`;
+}
+const I = {
+  mic:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+  moon:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',
+  alert:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17.5v.01"/></svg>',
+  x:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  left:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>',
+  right:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>',
+  bot:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13v1M15 13v1"/></svg>',
+  user:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>',
+  wa:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.6 7.3L3 20.5l1.7-5.2A8.4 8.4 0 1 1 21 11.5z"/></svg>'
+};
+
+/* ---------- conexão com o Supabase ---------- */
+/* A chave "publishable" foi feita para ficar no navegador: sem login, as regras (RLS) não deixam ler nada. */
+const SUPABASE_URL = 'https://nrerawlpzdykxbuflxkn.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_SYGiiu0-fIMDl7E9WUdIRg_HB--U0TG';
+// Veio de um link de convite ou de "esqueci minha senha"? (o Supabase manda #access_token...&type=invite)
+const TIPO_LINK = new URLSearchParams(location.hash.slice(1)).get('type');
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ---------- dados (vêm do banco) ---------- */
+let CFG = null;                       // linha da tabela config (mesmo formato que o agente lê)
+let DENTISTAS = [];
+let consultas = [];
+const conversas = new Map();          // telefone -> {nome, humano}
+const CORES = ['var(--d1)','var(--d2)','var(--d3)','var(--d4)'];
+const denById = id => DENTISTAS.find(d=>d.id===id) || {id, nome:'Dentista removido', cor:'var(--muted)'};
+const TIPOS = {
+  rotina:{label:'Rotina'}, avaliacao:{label:'Avaliação'}, retorno:{label:'Retorno'}, urgencia:{label:'Urgência'}
+};
+const STATUS_CURTO = { agendada:['A confirmar','warn'], confirmada:['Confirmada','ok'], concluida:['Atendida',''], faltou:['Faltou','bad'], cancelada:['Cancelada',''] };
+const agora = () => new Date();
+let HOJE = sod(new Date());
+const toMin = s => { const [h,m] = String(s).split(':').map(Number); return (h||0)*60 + (m||0); };
+
+function aplicarConfig(dados){
+  CFG = Object.assign({ dias:{}, manha:['08:00','12:00'], tarde:['14:00','18:00'], sabado:['08:00','12:00'], duracao_min:30, dentistas:[], valores:{} }, dados);
+  CFG.valores = Object.assign({rotina:0, avaliacao:0, retorno:0, urgencia:0}, CFG.valores || {});
+  DENTISTAS = CFG.dentistas.map((d,i) => ({ id:d.id, nome:d.nome, cor:CORES[i % CORES.length] }));
+}
+function deLinha(r){
+  return {
+    id:r.id, paciente:r.paciente, telefone:r.telefone, dentista:r.dentista, inicio:new Date(r.inicio),
+    duracao:r.duracao_min || 30, motivo:r.motivo || '', tipo:r.tipo || 'rotina', status:r.status || 'agendada',
+    origem:r.origem || 'agente', criadoEm:new Date(r.criado_em || r.inicio), valor: r.valor == null ? null : Number(r.valor)
+  };
+}
+/* Valor de uma consulta: o valor lançado nela, ou o da tabela de valores por tipo */
+const valorDe = c => c.valor != null ? c.valor : Number(CFG.valores[c.tipo] || 0);
+
+/* Telefones: o WhatsApp manda 5513999998888; mostramos (13) 99999-8888 */
+function soDigitos(t){ return String(t||'').replace(/\D/g,''); }
+function foneBR(t){
+  let d = soDigitos(t); if (d.length > 11 && d.startsWith('55')) d = d.slice(2);
+  if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+  return t;
+}
+function foneWa(t){ const d = soDigitos(t); return d.length <= 11 ? '55'+d : d; }
+
+/* Urgências novas: aparecem no alerta até alguém abrir */
+const VISTOS_KEY = 'og_urg_vistas';
+let vistos = new Set(); try { vistos = new Set(JSON.parse(localStorage.getItem(VISTOS_KEY) || '[]')); } catch(_){}
+function marcarVisto(id){ vistos.add(id); try { localStorage.setItem(VISTOS_KEY, JSON.stringify([...vistos].slice(-200))); } catch(_){} }
+const ehNova = c => c.tipo==='urgencia' && c.status!=='cancelada' && c.origem==='agente' && !vistos.has(c.id) && (agora() - c.criadoEm) < 24*3600e3 && c.inicio > addMin(agora(), -60);
+
+/* ---------- horários (mesma regra do agente) ---------- */
+function periodos(day){
+  const g = day.getDay();
+  if (!CFG.dias[String(g)]) return [];
+  if (g===6 || g===0) return [CFG.sabado];
+  return [CFG.manha, CFG.tarde];
+}
+function slotsDoDia(day){
+  const out = [];
+  for (const [a,b] of periodos(day)){
+    for (let m = toMin(a); m + CFG.duracao_min <= toMin(b); m += CFG.duracao_min){
+      const d = new Date(day); d.setHours(Math.floor(m/60), m%60, 0, 0); out.push(d);
+    }
+  }
+  return out;
+}
+const diaAberto = d => slotsDoDia(d).length > 0;
+const livre = (denId, inicio) => !consultas.some(c => c.dentista===denId && c.status!=='cancelada' && c.inicio.getTime()===inicio.getTime());
+
+/* ---------- carregar e acompanhar em tempo real ---------- */
+let canal = null;
+async function carregar(){
+  view.innerHTML = '<div class="loading">Carregando a agenda…</div>';
+  const desde = addDays(sod(agora()), -180).toISOString();
+  const [rc, rq, rv] = await Promise.all([
+    sb.from('config').select('dados').eq('id',1).single(),
+    sb.from('consultas').select('*').gte('inicio', desde).order('inicio'),
+    sb.from('conversas').select('telefone,nome,humano')
+  ]);
+  const erro = rc.error || rq.error || rv.error;
+  if (erro){ view.innerHTML = `<div class="empty">Não consegui ler os dados: ${esc(erro.message)}</div>`; return false; }
+  aplicarConfig(rc.data.dados);
+  consultas = rq.data.map(deLinha);
+  conversas.clear(); rv.data.forEach(c => conversas.set(c.telefone, c));
+  state.dia = primeiroAberto(HOJE); state.semana = segundaDa(state.dia);
+  atualizarCabecalho();
+  ouvir();
+  return true;
+}
+function ouvir(){
+  if (canal) sb.removeChannel(canal);
+  canal = sb.channel('painel')
+    .on('postgres_changes', {event:'*', schema:'public', table:'consultas'}, p => {
+      if (p.eventType === 'DELETE'){ consultas = consultas.filter(c => c.id !== p.old.id); }
+      else {
+        const c = deLinha(p.new);
+        const i = consultas.findIndex(x => x.id === c.id);
+        if (i >= 0) consultas[i] = c; else {
+          consultas.push(c);
+          if (c.origem === 'agente') toast(`${c.tipo==='urgencia'?'Urgência: ':'Nova consulta: '}${c.paciente.split(' ')[0]}, ${fmtCurto(c.inicio)} às ${hm(c.inicio)}`, {id:c.id, urg:c.tipo==='urgencia'});
+        }
+      }
+      redesenhar();
+    })
+    .on('postgres_changes', {event:'INSERT', schema:'public', table:'mensagens'}, p => {
+      if (abertaTelefone && p.new.telefone === abertaTelefone && abertaId) abrirConsulta(abertaId, true);
+    })
+    .on('postgres_changes', {event:'*', schema:'public', table:'conversas'}, p => {
+      if (p.new && p.new.telefone) conversas.set(p.new.telefone, p.new);
+    })
+    .on('postgres_changes', {event:'UPDATE', schema:'public', table:'config'}, p => {
+      aplicarConfig(p.new.dados); atualizarCabecalho(); if (state.tab !== 'ajustes') redesenhar();
+    })
+    .subscribe();
+}
+function redesenhar(){
+  if (overlay.classList.contains('open')){
+    if (abertaId && consultas.some(c => c.id===abertaId)) abrirConsulta(abertaId, true);
+    return;
+  }
+  if (state.tab !== 'ajustes') render();
+}
+
+/* ---------- estado ---------- */
+const state = { tab:'agenda', dia:HOJE, semana:null, dentista:'todos', busca:'', flash:null, mes:new Date(HOJE.getFullYear(), HOJE.getMonth(), 1) };
+function segundaDa(d){ const x = sod(d); const g = x.getDay(); return addDays(x, g===0 ? 1 : 1-g); }
+function primeiroAberto(d){ for (let i=0;i<14;i++){ const x = addDays(sod(d), i); if (diaAberto(x)) return x; } return sod(d); }
+
+/* ---------- renderização ---------- */
+const view = $('#view');
+function render(){
+  document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.tab===state.tab ? 'page' : 'false'));
+  $('#fab').classList.toggle('hidden', !(state.tab==='agenda' || state.tab==='pacientes'));
+  if (!CFG) return;
+  if (state.tab==='agenda') renderAgenda();
+  else if (state.tab==='pacientes') renderPacientes();
+  else if (state.tab==='resumo') renderResumo();
+  else renderAjustes();
+}
+
+const curto = nome => nome.split(' ').slice(0,2).join(' ');
+function cardHTML(c, comDentista=true){
+  const [lab, cls] = STATUS_CURTO[c.status] || ['',''];
+  const passada = c.inicio < agora() && c.status!=='agendada' && c.status!=='confirmada';
+  const linha2 = c.tipo==='urgencia' ? `<span class="u">Urgência · ${esc(c.motivo)}</span>` : `<span>${esc(c.motivo || TIPOS[c.tipo]?.label || '')}</span>`;
+  return `<button class="card ${passada?'past':''} ${state.flash===c.id?'flash':''}" style="--stripe:${c.tipo==='urgencia'?'var(--bad)':'transparent'}" data-id="${c.id}">
+    <span class="t">${hm(c.inicio)}</span>
+    <span class="bd"><b>${esc(c.paciente)}</b>${linha2}</span>
+    <span class="rt"><span class="st ${cls}">${lab}</span>${comDentista ? `<small>${esc(curto(denById(c.dentista).nome))}</small>` : ''}</span>
+  </button>`;
+}
+
+function renderAgenda(){
+  const now = agora();
+  HOJE = sod(now);
+  const urg = consultas.filter(ehNova).sort((a,b)=>b.criadoEm-a.criadoEm);
+  let alerta = '';
+  if (urg.length){
+    const u = urg[0];
+    alerta = `<div class="alert"><span class="ic">${I.alert}</span><div class="tx"><b>Nova urgência: ${esc(u.paciente)}</b><p>${sameDay(u.inicio,HOJE)?'Hoje':fmtCurto(u.inicio)} às ${hm(u.inicio)} · agendada pelo agente ${relTempo(u.criadoEm)}</p></div><button class="btn small" data-id="${u.id}">Ver</button></div>`;
+  }
+  const dias = [];
+  for (let i=0;i<7;i++){
+    const d = addDays(state.semana, i);
+    if (!diaAberto(d) && !consultas.some(c => sameDay(c.inicio,d) && c.status!=='cancelada')) continue;
+    dias.push(`<button class="day ${sameDay(d,state.dia)?'sel':''} ${sameDay(d,HOJE)?'today':''}" data-dia="${d.toISOString()}" aria-label="${fmtLongo(d)}"><span class="dw">${dw(d)}</span><span class="dn">${d.getDate()}</span></button>`);
+  }
+  const doFiltro = c => sameDay(c.inicio, state.dia) && (state.dentista==='todos' || c.dentista===state.dentista);
+  const lista = consultas.filter(c => doFiltro(c) && c.status!=='cancelada').sort((a,b) => a.inicio-b.inicio || a.dentista.localeCompare(b.dentista));
+  const canceladas = consultas.filter(c => doFiltro(c) && c.status==='cancelada').length;
+  const aConfirmar = lista.filter(c => c.status==='agendada' && c.inicio > now).length;
+  let items = '';
+  const ehHoje = sameDay(state.dia, now);
+  const anteriores = ehHoje ? lista.filter(c => c.inicio <= now) : [];
+  const proximas = ehHoje ? lista.filter(c => c.inicio > now) : lista;
+  if (anteriores.length){
+    items += `<button class="btn small ghost" id="togAnt" style="align-self:center">${state.verAnteriores ? 'Esconder' : 'Mostrar'} ${anteriores.length} consulta${anteriores.length>1?'s':''} de mais cedo</button>`;
+    if (state.verAnteriores) items += anteriores.map(c => cardHTML(c, state.dentista==='todos')).join('');
+  }
+  if (ehHoje) items += `<div class="now">Agora · ${hm(now)}</div>`;
+  items += proximas.map(c => cardHTML(c, state.dentista==='todos')).join('');
+  if (ehHoje && !proximas.length && lista.length) items += `<div class="empty">Não há mais consultas hoje.</div>`;
+  if (!lista.length) items = `<div class="empty">Nenhuma consulta neste dia.</div>`;
+  const titulo = sameDay(state.dia,HOJE) ? 'Hoje' : sameDay(state.dia, addDays(HOJE,1)) ? 'Amanhã' : state.dia.toLocaleDateString('pt-BR',{weekday:'long'});
+  const sub = `${state.dia.toLocaleDateString('pt-BR',{day:'numeric',month:'long'})} · ${lista.length} consulta${lista.length===1?'':'s'}${aConfirmar?` · ${aConfirmar} a confirmar`:''}`;
+  view.innerHTML = `
+    ${alerta}
+    <div class="week">
+      <button class="iconbtn" id="prevW" aria-label="Semana anterior">${I.left}</button>
+      <div class="days" style="grid-template-columns:repeat(${Math.max(dias.length,1)},1fr)">${dias.join('')}</div>
+      <button class="iconbtn" id="nextW" aria-label="Próxima semana">${I.right}</button>
+    </div>
+    <div class="dayhead">
+      <div><h2 style="text-transform:capitalize">${titulo}</h2><span class="meta">${sub}</span></div>
+      <select class="dsel" id="dSel" aria-label="Filtrar por dentista">
+        <option value="todos">Todos</option>
+        ${DENTISTAS.map(d => `<option value="${d.id}" ${state.dentista===d.id?'selected':''}>${esc(d.nome)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="timeline">${items}</div>
+    ${canceladas ? `<p class="hint">${canceladas} cancelada${canceladas>1?'s':''} neste dia não aparece${canceladas>1?'m':''} na lista.</p>` : ''}`;
+  $('#dSel').onchange = e => { state.dentista = e.target.value; renderAgenda(); };
+  const tg = $('#togAnt'); if (tg) tg.onclick = () => { state.verAnteriores = !state.verAnteriores; renderAgenda(); };
+  state.flash = null;
+}
+
+function pacientesAgregados(){
+  const map = new Map();
+  for (const c of consultas){
+    const k = soDigitos(c.telefone);
+    if (!map.has(k)) map.set(k, {nome:c.paciente, telefone:c.telefone, consultas:[]});
+    const p = map.get(k); p.consultas.push(c); p.nome = c.paciente;
+  }
+  const now = agora();
+  return [...map.values()].map(p => {
+    p.consultas.sort((a,b)=>a.inicio-b.inicio);
+    p.proxima = p.consultas.find(c => c.inicio > now && c.status!=='cancelada') || null;
+    p.faltas = p.consultas.filter(c => c.status==='faltou').length;
+    p.total = p.consultas.filter(c => c.status==='concluida').reduce((s,c) => s + valorDe(c), 0);
+    return p;
+  }).sort((a,b) => (a.proxima? a.proxima.inicio : Infinity) - (b.proxima? b.proxima.inicio : Infinity) || a.nome.localeCompare(b.nome));
+}
+const iniciais = n => n.split(' ').filter(Boolean).slice(0,2).map(s=>s[0]).join('').toUpperCase();
+
+function renderPacientes(){
+  const q = state.busca.trim().toLowerCase();
+  const qd = soDigitos(q);
+  const ps = pacientesAgregados().filter(p => !q || p.nome.toLowerCase().includes(q) || (qd && soDigitos(p.telefone).includes(qd)));
+  view.innerHTML = `
+    <div class="dayhead"><div><h2>Pacientes</h2><span class="meta">${ps.length} no cadastro</span></div></div>
+    <input class="search" id="busca" type="search" placeholder="Buscar por nome ou telefone" value="${esc(state.busca)}" aria-label="Buscar paciente">
+    <div class="plist">${ps.map(p => `
+      <button class="prow" data-pac="${esc(soDigitos(p.telefone))}">
+        <span class="av">${iniciais(p.nome)}</span>
+        <span class="tx"><b>${esc(p.nome)}</b><span class="num">${esc(foneBR(p.telefone))}</span></span>
+        <span class="rt">${p.proxima ? `<b class="num">${fmtCurto(p.proxima.inicio)}</b>${hm(p.proxima.inicio)}` : 'sem consulta'}</span>
+      </button>`).join('') || `<div class="empty">${consultas.length ? 'Ninguém encontrado com essa busca.' : 'As pacientes aparecem aqui depois da primeira consulta.'}</div>`}
+    </div>`;
+  $('#busca').addEventListener('input', e => { state.busca = e.target.value; const pos = e.target.selectionStart; renderPacientes(); const nb = $('#busca'); nb.focus(); try{ nb.setSelectionRange(pos,pos); }catch(_){} });
+}
+
+/* ---------- Resumo: ganhos do mês ---------- */
+function renderResumo(){
+  const ini = state.mes, fim = new Date(ini.getFullYear(), ini.getMonth()+1, 1);
+  const doMes = consultas.filter(c => c.inicio >= ini && c.inicio < fim && c.status!=='cancelada');
+  const atendidas = doMes.filter(c => c.status==='concluida');
+  const previstas = doMes.filter(c => c.status==='agendada' || c.status==='confirmada');
+  const faltas = doMes.filter(c => c.status==='faltou');
+  const soma = arr => arr.reduce((s,c) => s + valorDe(c), 0);
+  const recebido = soma(atendidas), previsto = soma(previstas);
+  const doAgente = doMes.filter(c => c.origem==='agente' && c.status!=='faltou');
+  const passadas = atendidas.length + faltas.length;
+  const taxaFalta = passadas ? Math.round(faltas.length/passadas*100) : 0;
+  const semValores = Object.values(CFG.valores).every(v => !Number(v));
+  const nomeMes = ini.toLocaleDateString('pt-BR',{month:'long', year:'numeric'});
+  const ehMesAtual = ini.getFullYear()===HOJE.getFullYear() && ini.getMonth()===HOJE.getMonth();
+  const linhasTipo = Object.entries(TIPOS).map(([k,v]) => {
+    const cs = doMes.filter(c => c.tipo===k && c.status!=='faltou');
+    return cs.length ? `<div class="r"><span>${v.label} · ${cs.length}</span><b class="num">${brl(soma(cs))}</b></div>` : '';
+  }).join('');
+  // horário em que as pacientes marcam com o agente (últimos 30 dias)
+  const ini30 = addDays(HOJE, -29);
+  const ag30 = consultas.filter(c => c.origem==='agente' && c.criadoEm >= ini30);
+  const porHora = Array(24).fill(0); ag30.forEach(c => porHora[c.criadoEm.getHours()]++);
+  const max = Math.max(...porHora, 1);
+  const fora = ag30.filter(c => foraHorario(c.criadoEm)).length;
+  view.innerHTML = `
+    <div class="dayhead">
+      <div><h2>Resumo</h2><span class="meta">${nomeMes.charAt(0).toUpperCase()+nomeMes.slice(1)}</span></div>
+      <div class="mnav"><button class="iconbtn" id="mPrev" aria-label="Mês anterior">${I.left}</button><button class="iconbtn" id="mNext" aria-label="Próximo mês" ${ehMesAtual?'disabled':''}>${I.right}</button></div>
+    </div>
+    ${semValores ? `<div class="aviso"><span>Os valores das consultas ainda não foram preenchidos, por isso os ganhos aparecem zerados.</span><button class="btn small" id="irValores">Preencher</button></div>` : ''}
+    <div class="hero">
+      <span>Ganhos com consultas atendidas</span>
+      <b class="num">${brl(recebido)}</b>
+      <small>${atendidas.length} atendida${atendidas.length===1?'':'s'}${previstas.length ? ` · mais <strong class="num">${brl(previsto)}</strong> previstos em ${previstas.length} agendada${previstas.length===1?'':'s'}` : ''}</small>
+    </div>
+    <div class="trio">
+      <div class="mini"><b class="num">${brl(soma(doAgente))}</b><span>em ${doAgente.length} consulta${doAgente.length===1?'':'s'} do agente</span></div>
+      <div class="mini"><b class="num">${taxaFalta}%</b><span>de faltas (${faltas.length})</span></div>
+      <div class="mini"><b class="num">${fora}</b><span>marcadas fora do expediente (30 dias)</span></div>
+    </div>
+    <div class="panel">
+      <h3>Por tipo de consulta</h3>
+      <p class="d">Atendidas e agendadas no mês. Cada consulta usa o valor lançado nela ou, se não tiver, o valor do tipo em Ajustes.</p>
+      <div class="infobox tipos" style="margin:0">${linhasTipo || '<div class="r"><span>Nenhuma consulta neste mês.</span></div>'}</div>
+    </div>
+    <div class="panel">
+      <h3>Horário em que as pacientes marcam</h3>
+      <p class="d">Consultas marcadas pelo agente nos últimos 30 dias. Em azul, fora do expediente.</p>
+      <div class="hours">${porHora.map((n,h) => `<div class="${foraHorario(new Date(2026,0,5,h))?'off':''}" style="height:${Math.max(2,n/max*100)}%" title="${pad(h)}h: ${n}"></div>`).join('')}</div>
+      <div class="haxis">${porHora.map((_,h) => `<span>${h%6===0?pad(h)+'h':''}</span>`).join('')}</div>
+    </div>`;
+  $('#mPrev').onclick = () => { state.mes = new Date(ini.getFullYear(), ini.getMonth()-1, 1); renderResumo(); };
+  $('#mNext').onclick = () => { if (!ehMesAtual){ state.mes = new Date(ini.getFullYear(), ini.getMonth()+1, 1); renderResumo(); } };
+  const iv = $('#irValores'); if (iv) iv.onclick = () => { state.tab = 'ajustes'; state.focoValores = true; render(); };
+}
+
+/* ---------- Ajustes (gravam na tabela config, que o agente lê) ---------- */
+const DIAS_NOMES = [[1,'Seg'],[2,'Ter'],[3,'Qua'],[4,'Qui'],[5,'Sex'],[6,'Sáb']];
+let rascunho = null;
+function renderAjustes(){
+  if (!rascunho) rascunho = JSON.parse(JSON.stringify(CFG));
+  const c = rascunho;
+  view.innerHTML = `
+    <div class="dayhead"><div><h2>Ajustes</h2><span class="meta">O agente segue estas regras</span></div></div>
+    <form class="cfg" id="cfgForm" novalidate>
+      <div class="panel">
+        <h3>Clínica</h3>
+        <p class="d">O agente usa estes dados nas respostas e na localização.</p>
+        <div class="form">
+          <label for="cNome">Nome<input id="cNome" value="${esc(c.nome||'')}"></label>
+          <label for="cEnd">Endereço<input id="cEnd" value="${esc(c.endereco||'')}"></label>
+        </div>
+      </div>
+      <div class="panel" id="pValores">
+        <h3>Valores das consultas</h3>
+        <p class="d">Usados só no Resumo para calcular os ganhos. O agente não informa preços às pacientes. Dá para mudar o valor de uma consulta específica ao abri-la.</p>
+        <div>${Object.entries(TIPOS).map(([k,v]) => `<label class="vrow" for="v_${k}"><span>${v.label}</span><input id="v_${k}" type="number" min="0" step="5" inputmode="decimal" class="num" value="${Number(c.valores[k])||''}" placeholder="R$ 0"></label>`).join('')}</div>
+      </div>
+      <div class="panel">
+        <h3>Horário de atendimento</h3>
+        <p class="d">O agente só oferece horários dentro destes períodos.</p>
+        <div class="form">
+          <div class="dias">${DIAS_NOMES.map(([g,n]) => `<label for="dia${g}"><input type="checkbox" id="dia${g}" data-dia-cfg="${g}" ${c.dias[String(g)]?'checked':''}>${n}</label>`).join('')}</div>
+          <div class="per"><span>Manhã</span><input type="time" id="m1" value="${c.manha[0]}" aria-label="Manhã, início"><input type="time" id="m2" value="${c.manha[1]}" aria-label="Manhã, fim"></div>
+          <div class="per"><span>Tarde</span><input type="time" id="t1" value="${c.tarde[0]}" aria-label="Tarde, início"><input type="time" id="t2" value="${c.tarde[1]}" aria-label="Tarde, fim"></div>
+          <div class="per ${c.dias['6']?'':'hidden'}" id="perSab"><span>Sábado</span><input type="time" id="s1" value="${c.sabado[0]}" aria-label="Sábado, início"><input type="time" id="s2" value="${c.sabado[1]}" aria-label="Sábado, fim"></div>
+          <label for="cDur">Duração de cada consulta<select id="cDur">${[20,30,40,45,60].map(m => `<option value="${m}" ${c.duracao_min===m?'selected':''}>${m} minutos</option>`).join('')}</select></label>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Dentistas</h3>
+        <p class="d">Cada um tem sua agenda. O agente distribui as pacientes entre eles.</p>
+        <div class="dlist">${c.dentistas.map((d,i) => `<div class="drow"><i style="background:${CORES[i % CORES.length]}"></i><span>${esc(d.nome)}</span><button type="button" class="btn small danger" data-rm-den="${esc(d.id)}">Remover</button></div>`).join('')}</div>
+        <div class="addrow" style="margin-top:8px"><input id="novoDen" placeholder="Ex.: Dra. Ana Souza" aria-label="Nome do novo dentista" autocomplete="off"><button type="button" class="btn small" id="addDen">Adicionar</button></div>
+        <div class="err" id="denErr" style="color:var(--bad);font-size:13px;margin-top:6px"></div>
+      </div>
+      <div class="panel">
+        <h3>Agente no WhatsApp</h3>
+        <p class="d">Desligado, as mensagens chegam só para a recepção responder no WhatsApp Business.</p>
+        <div class="form">
+          <label class="toggle" for="cAg"><span class="tx"><b>Agente atendendo</b><span>Responde e agenda sozinho</span></span><input type="checkbox" class="sw acc" id="cAg" ${c.agente_ligado?'checked':''}></label>
+          <label for="cUrg">WhatsApp que recebe os alertas de urgência<input id="cUrg" inputmode="tel" placeholder="(13) 90000-0000" value="${esc(c.whats_urgencia||'')}" autocomplete="off"></label>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Conta</h3>
+        <p class="d">Entrou como <b>${esc(sessao.email)}</b>.</p>
+        <button type="button" class="btn small" id="sairBtn">Sair da conta</button>
+      </div>
+      <div class="err" id="cfgErr" style="color:var(--bad);font-size:13.5px"></div>
+      <div class="savebar"><p class="note">O agente passa a usar as mudanças na próxima mensagem.</p><button class="btn primary" type="button" data-enviar>Salvar ajustes</button></div>
+    </form>`;
+  if (state.focoValores){ state.focoValores = false; $('#pValores').scrollIntoView({block:'start'}); setTimeout(() => $('#v_rotina').focus(), 50); }
+  $('#sairBtn').onclick = sair;
+  document.querySelectorAll('[data-dia-cfg]').forEach(cb => cb.addEventListener('change', () => {
+    rascunho.dias[cb.dataset.diaCfg] = cb.checked;
+    if (cb.dataset.diaCfg==='6') $('#perSab').classList.toggle('hidden', !cb.checked);
+  }));
+  $('#addDen').onclick = () => {
+    const n = $('#novoDen').value.trim();
+    if (!n){ $('#denErr').textContent = 'Escreva o nome do dentista.'; return; }
+    lerCampos();
+    const prox = 1 + Math.max(0, ...rascunho.dentistas.map(d => Number(String(d.id).replace(/\D/g,''))||0));
+    rascunho.dentistas.push({id:'d'+prox, nome:n});
+    renderAjustes();
+  };
+  $('#novoDen').addEventListener('input', () => $('#denErr').textContent = '');
+  document.querySelectorAll('[data-rm-den]').forEach(b => b.onclick = () => {
+    const id = b.dataset.rmDen;
+    const futuras = consultas.filter(x => x.dentista===id && x.inicio > agora() && x.status!=='cancelada').length;
+    if (futuras){ $('#denErr').textContent = `Esse dentista tem ${futuras} consulta${futuras>1?'s':''} marcada${futuras>1?'s':''}. Remarque ou cancele antes de remover.`; return; }
+    if (rascunho.dentistas.length===1){ $('#denErr').textContent = 'A clínica precisa de pelo menos um dentista.'; return; }
+    lerCampos();
+    rascunho.dentistas = rascunho.dentistas.filter(d => d.id!==id);
+    renderAjustes();
+  });
+  aoEnviar($('#cfgForm'), async () => {
+    lerCampos();
+    const r = rascunho;
+    if (!String(r.nome).trim()){ $('#cfgErr').textContent = 'Preencha o nome da clínica.'; return; }
+    if (toMin(r.manha[0]) >= toMin(r.manha[1]) || toMin(r.tarde[0]) >= toMin(r.tarde[1]) || toMin(r.manha[1]) > toMin(r.tarde[0])){
+      $('#cfgErr').textContent = 'Confira os horários: cada período precisa terminar depois de começar, e a tarde começa depois da manhã.'; return;
+    }
+    if (![1,2,3,4,5,6].some(g => r.dias[String(g)])){ $('#cfgErr').textContent = 'Marque pelo menos um dia de atendimento.'; return; }
+    const btn = document.querySelector('#cfgForm [data-enviar]'); btn.disabled = true;
+    const { error } = await sb.from('config').update({ dados: r }).eq('id', 1);
+    btn.disabled = false;
+    if (error){ $('#cfgErr').textContent = 'Não consegui salvar: ' + error.message; return; }
+    aplicarConfig(JSON.parse(JSON.stringify(r)));
+    if (!DENTISTAS.some(d => d.id===state.dentista)) state.dentista = 'todos';
+    rascunho = null;
+    atualizarCabecalho();
+    toast('Ajustes salvos. O agente já usa os novos dados.');
+    renderAjustes();
+  });
+}
+function lerCampos(){
+  const c = rascunho;
+  c.nome = $('#cNome').value; c.endereco = $('#cEnd').value;
+  c.manha = [$('#m1').value, $('#m2').value]; c.tarde = [$('#t1').value, $('#t2').value];
+  c.sabado = [$('#s1').value, $('#s2').value];
+  c.duracao_min = Number($('#cDur').value);
+  c.agente_ligado = $('#cAg').checked;
+  c.whats_urgencia = $('#cUrg').value.trim();
+  for (const k of Object.keys(TIPOS)) c.valores[k] = Math.max(0, Number($('#v_'+k).value) || 0);
+}
+function atualizarCabecalho(){
+  if (!CFG) return;
+  const partes = String(CFG.nome || '').trim().split(' '); const ult = partes.pop();
+  $('#nomeClinica').innerHTML = (partes.length ? esc(partes.join(' ')) + ' ' : '') + '<em>' + esc(ult) + '</em>';
+  $('#liveDot').classList.toggle('off', !CFG.agente_ligado);
+  $('#agentStatus').textContent = CFG.agente_ligado ? 'Agente atendendo no WhatsApp' : 'Agente pausado · a recepção responde';
+}
+
+/* ---------- login (Supabase Auth) ---------- */
+const sessao = { email:'' };
+async function entrarNoApp(user){
+  sessao.email = user.email || '';
+  document.body.classList.add('logged');
+  state.tab = 'agenda';
+  if (await carregar()) render();
+  window.scrollTo({top:0});
+}
+aoEnviar($('#loginForm'), async () => {
+  const em = $('#lEmail').value.trim(), se = $('#lSenha').value;
+  if (!em || !se){ $('#lErr').textContent = 'Preencha e-mail e senha.'; return; }
+  const btn = document.querySelector('#loginForm [data-enviar]'); btn.disabled = true; btn.textContent = 'Entrando…';
+  const { data, error } = await sb.auth.signInWithPassword({ email: em, password: se });
+  btn.disabled = false; btn.textContent = 'Entrar';
+  if (error){
+    $('#lErr').textContent = /invalid/i.test(error.message) ? 'E-mail ou senha incorretos.' : /confirm/i.test(error.message) ? 'Esse e-mail ainda não foi confirmado no Supabase.' : 'Não consegui entrar: ' + error.message;
+    return;
+  }
+  $('#lSenha').value = ''; $('#lErr').textContent = '';
+  entrarNoApp(data.user);
+});
+['lEmail','lSenha'].forEach(id => $('#'+id).addEventListener('input', () => $('#lErr').textContent = ''));
+$('#esqueci').addEventListener('click', async () => {
+  const em = $('#lEmail').value.trim();
+  if (!em){ $('#lErr').textContent = 'Escreva seu e-mail acima e toque de novo em "Esqueci minha senha".'; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(em, { redirectTo: location.origin + location.pathname });
+  $('#lErr').style.color = error ? '' : 'var(--muted)';
+  $('#lErr').textContent = error ? 'Não consegui enviar: ' + error.message : 'Se esse e-mail tiver acesso, chega um link para criar uma senha nova.';
+  setTimeout(() => { $('#lErr').style.color = ''; }, 8000);
+});
+function pedirSenha(){
+  $('#loginForm').classList.add('hidden'); $('#senhaForm').classList.remove('hidden'); $('#lNote').classList.add('hidden');
+  history.replaceState(null, '', location.pathname);
+  $('#nSenha1').focus();
+}
+aoEnviar($('#senhaForm'), async () => {
+  const a = $('#nSenha1').value, b = $('#nSenha2').value;
+  if (a.length < 8){ $('#sErr').textContent = 'Use pelo menos 8 caracteres.'; return; }
+  if (a !== b){ $('#sErr').textContent = 'As duas senhas não são iguais.'; return; }
+  const btn = document.querySelector('#senhaForm [data-enviar]'); btn.disabled = true;
+  const { data, error } = await sb.auth.updateUser({ password: a });
+  btn.disabled = false;
+  if (error){ $('#sErr').textContent = /expired|invalid|session/i.test(error.message) ? 'O link expirou. Peça um novo em "Esqueci minha senha".' : 'Não consegui salvar: ' + error.message; return; }
+  $('#nSenha1').value = $('#nSenha2').value = '';
+  $('#senhaForm').classList.add('hidden'); $('#loginForm').classList.remove('hidden'); $('#lNote').classList.remove('hidden');
+  entrarNoApp(data.user);
+});
+async function sair(){
+  await sb.auth.signOut();
+  if (canal){ sb.removeChannel(canal); canal = null; }
+  CFG = null; consultas = []; rascunho = null;
+  document.body.classList.remove('logged');
+  overlay.classList.remove('open');
+  $('#lEmail').focus();
+}
+
+/* ---------- folha de detalhes ---------- */
+const overlay = $('#overlay'), sheet = $('#sheet');
+let ultimoFoco = null, abertaId = null, abertaTelefone = null;
+function abrirSheet(html, manterFoco){
+  if (!manterFoco) ultimoFoco = document.activeElement;
+  sheet.innerHTML = '<div class="grab"></div>' + html;
+  overlay.classList.add('open');
+  if (!manterFoco){ const x = sheet.querySelector('.x'); if (x) x.focus(); }
+}
+function fecharSheet(){ overlay.classList.remove('open'); abertaId = abertaTelefone = null; render(); if (ultimoFoco && document.body.contains(ultimoFoco)) ultimoFoco.focus(); }
+
+async function atualizarConsulta(c, campos, msg){
+  const { error } = await sb.from('consultas').update(campos).eq('id', c.id);
+  if (error){ toast(error.code==='23505' ? 'Esse horário já está ocupado com este dentista.' : 'Não consegui salvar: ' + error.message); return false; }
+  Object.assign(c, campos.status ? {status:campos.status} : {}, 'valor' in campos ? {valor:campos.valor} : {});
+  if (msg) toast(msg);
+  return true;
+}
+
+async function abrirConsulta(id, atualizar){
+  const c = consultas.find(x => x.id===id); if (!c) return;
+  if (!atualizar) marcarVisto(c.id);
+  abertaId = c.id; abertaTelefone = c.telefone;
+  const den = denById(c.dentista);
+  const [lab] = STATUS_CURTO[c.status] || [''];
+  const passada = c.inicio <= agora();
+  let principal = '';
+  if (c.status==='cancelada') principal = `<button class="btn primary full" data-st="agendada">Reativar consulta</button>`;
+  else if (!passada && c.status==='agendada') principal = `<button class="btn primary full" data-st="confirmada">Confirmar presença</button>`;
+  else if (passada && c.status!=='concluida' && c.status!=='faltou') principal = `<button class="btn primary" data-st="concluida">Atendida</button><button class="btn" data-st="faltou">Faltou</button>`;
+  const conv = conversas.get(c.telefone) || {};
+  const conversaHTML = c.origem==='agente' ? `
+    <details class="conv" id="convBox" ${state.convAberta===c.id?'open':''}>
+      <summary>${I.wa}Conversa com o agente<span class="c" id="convN">abrir</span></summary>
+      <div class="chat" id="chat"><div class="loading" style="padding:16px 0">Carregando…</div></div>
+    </details>
+    <label class="toggle" for="humano"><span class="tx"><b>Assumir conversa</b><span>O agente para de responder esta paciente. Responda pelo WhatsApp Business do celular.</span></span><input type="checkbox" class="sw" id="humano" ${conv.humano?'checked':''}></label>`
+    : `<p class="note" style="text-align:center;margin-top:16px">Marcada pela recepção.</p>`;
+  abrirSheet(`
+    <div class="hd"><h3 id="sheetTitle">${esc(c.paciente)}</h3><button class="x" aria-label="Fechar">${I.x}</button></div>
+    <p class="sline">${c.tipo==='urgencia'?'<span style="color:var(--bad);font-weight:700">Urgência</span> · ':''}${esc(c.motivo || TIPOS[c.tipo]?.label || '')}</p>
+    <div class="infobox">
+      <div class="r"><span>Quando</span><b>${fmtCurto(c.inicio)}, ${hm(c.inicio)}</b></div>
+      <div class="r"><span>Dentista</span><b>${esc(den.nome)}</b></div>
+      <div class="r"><span>Situação</span><b>${lab}</b></div>
+      <div class="r"><span>WhatsApp</span><b class="num">${esc(foneBR(c.telefone))}</b></div>
+      <div class="r"><span>Valor <small style="display:block;font-size:12px">${c.valor==null?'da tabela de '+(TIPOS[c.tipo]?.label||'').toLowerCase():'lançado nesta consulta'}</small></span><b><input class="vin num" id="cValor" type="number" min="0" step="5" inputmode="decimal" value="${valorDe(c)||''}" placeholder="R$ 0" aria-label="Valor da consulta"></b></div>
+    </div>
+    <div class="actions">
+      ${principal}
+      <a class="btn full" href="https://wa.me/${foneWa(c.telefone)}" target="_blank" rel="noopener">${I.wa}Abrir no WhatsApp</a>
+    </div>
+    ${c.status!=='cancelada' ? `<div class="more"><button class="btn ghost small danger" data-st="cancelada">Cancelar consulta</button></div>` : ''}
+    ${conversaHTML}
+  `, atualizar);
+  sheet.querySelector('.x').onclick = fecharSheet;
+  sheet.querySelectorAll('[data-st]').forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    const st = b.dataset.st;
+    if (await atualizarConsulta(c, {status:st}, `${c.paciente.split(' ')[0]}: ${STATUS_CURTO[st][0].toLowerCase()}`)) abrirConsulta(c.id, true);
+    else b.disabled = false;
+  });
+  $('#cValor').addEventListener('change', async e => {
+    const v = e.target.value === '' ? null : Math.max(0, Number(e.target.value) || 0);
+    if (await atualizarConsulta(c, {valor:v}, v==null ? 'Valor voltou para o da tabela' : `Valor salvo: ${brl(v)}`)) abrirConsulta(c.id, true);
+  });
+  const sw = $('#humano');
+  if (sw) sw.onchange = async () => {
+    const humano = sw.checked;
+    const { error } = await sb.from('conversas').upsert({ telefone:c.telefone, humano, atualizado_em:new Date().toISOString() });
+    if (error){ sw.checked = !humano; toast('Não consegui salvar: ' + error.message); return; }
+    conversas.set(c.telefone, Object.assign(conversas.get(c.telefone) || {telefone:c.telefone}, {humano}));
+    toast(humano ? 'Agente pausado para esta paciente' : 'Agente voltou a responder');
+  };
+  const box = $('#convBox');
+  if (box){
+    const carregarChat = async () => {
+      const { data, error } = await sb.from('mensagens').select('papel,texto,audio,criado_em').eq('telefone', c.telefone).order('criado_em', {ascending:false}).limit(80);
+      const ch = $('#chat'); if (!ch || abertaId !== c.id) return;
+      if (error){ ch.innerHTML = `<div class="empty">${esc(error.message)}</div>`; return; }
+      const msgs = data.reverse();
+      $('#convN').textContent = `${msgs.length} mensage${msgs.length===1?'m':'ns'}`;
+      let html = '', ultimoDia = null;
+      for (const m of msgs){
+        const q = new Date(m.criado_em);
+        if (!ultimoDia || !sameDay(ultimoDia, q)){ html += `<span class="daysep">${fmtCurto(q)}</span>`; ultimoDia = q; }
+        const who = m.papel==='paciente' ? esc(c.paciente.split(' ')[0]) : m.papel==='agente' ? `${I.bot}Agente` : `${I.user}Recepção`;
+        html += `<div class="msg ${m.papel}"><div class="who">${who}</div>${m.audio?`<div class="aud">${I.mic}<i></i>áudio transcrito</div>`:''}${esc(m.texto)}<small>${hm(q)}</small></div>`;
+      }
+      ch.innerHTML = html || '<div class="empty">Sem mensagens.</div>';
+      if (box.open) ch.lastElementChild && ch.lastElementChild.scrollIntoView({block:'nearest'});
+    };
+    box.addEventListener('toggle', () => { state.convAberta = box.open ? c.id : null; if (box.open) carregarChat(); });
+    if (box.open) carregarChat();
+  }
+}
+
+function abrirPaciente(key){
+  const p = pacientesAgregados().find(x => soDigitos(x.telefone) === key); if (!p) return;
+  abertaId = abertaTelefone = null;
+  abrirSheet(`
+    <div class="hd"><h3 id="sheetTitle">${esc(p.nome)}</h3><button class="x" aria-label="Fechar">${I.x}</button></div>
+    <div class="infobox" style="margin-top:12px">
+      <div class="r"><span>WhatsApp</span><b class="num">${esc(foneBR(p.telefone))}</b></div>
+      <div class="r"><span>Consultas</span><b>${p.consultas.length}</b></div>
+      <div class="r"><span>Faltas</span><b>${p.faltas}</b></div>
+      <div class="r"><span>Total atendido</span><b class="num">${brl(p.total)}</b></div>
+    </div>
+    <div class="actions"><a class="btn full" href="https://wa.me/${foneWa(p.telefone)}" target="_blank" rel="noopener">${I.wa}Abrir no WhatsApp</a></div>
+    <div class="sec">Histórico</div>
+    <div class="timeline">${[...p.consultas].reverse().map(c => cardHTML(c, true)).join('')}</div>`);
+  sheet.querySelector('.x').onclick = fecharSheet;
+}
+
+function abrirNova(){
+  abertaId = abertaTelefone = null;
+  const diasOpts = [];
+  for (let i=0;i<30;i++){ const d = addDays(HOJE,i); if (slotsDoDia(d).length) diasOpts.push(d); }
+  abrirSheet(`
+    <div class="hd"><h3 id="sheetTitle">Nova consulta</h3><button class="x" aria-label="Fechar">${I.x}</button></div>
+    <form class="form" id="novaForm">
+      <label for="nNome">Nome da paciente<input id="nNome" required autocomplete="off"></label>
+      <label for="nFone">WhatsApp<input id="nFone" inputmode="tel" placeholder="(13) 90000-0000" required autocomplete="off"></label>
+      <div class="two">
+        <label for="nDen">Dentista<select id="nDen">${DENTISTAS.map(d=>`<option value="${esc(d.id)}">${esc(d.nome)}</option>`).join('')}</select></label>
+        <label for="nTipo">Tipo<select id="nTipo">${Object.entries(TIPOS).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}</select></label>
+      </div>
+      <div class="two">
+        <label for="nDia">Dia<select id="nDia">${diasOpts.map(d=>`<option value="${d.toISOString()}" ${sameDay(d,state.dia)?'selected':''}>${fmtCurto(d)}</option>`).join('')}</select></label>
+        <label for="nHora">Horário livre<select id="nHora"></select></label>
+      </div>
+      <label for="nMot">Motivo<input id="nMot" placeholder="Ex.: limpeza, dor no siso" autocomplete="off"></label>
+      <div class="err" id="nErr"></div>
+      <button class="btn primary" type="button" data-enviar style="justify-content:center">Agendar</button>
+    </form>`);
+  sheet.querySelector('.x').onclick = fecharSheet;
+  const preencherHoras = () => {
+    if (!$('#nDia').value){ $('#nHora').innerHTML = '<option value="">Sem dias abertos</option>'; return; }
+    const d = new Date($('#nDia').value), den = $('#nDen').value, now = agora();
+    const hs = slotsDoDia(d).filter(s => s > now && livre(den, s));
+    $('#nHora').innerHTML = hs.length ? hs.map(s=>`<option value="${s.toISOString()}">${hm(s)}</option>`).join('') : '<option value="">Sem horário livre</option>';
+  };
+  $('#nDia').onchange = preencherHoras; $('#nDen').onchange = preencherHoras; preencherHoras();
+  let enviando = false;
+  aoEnviar($('#novaForm'), async () => {
+    if (enviando) return;
+    const nome = $('#nNome').value.trim(), fone = soDigitos($('#nFone').value), hora = $('#nHora').value;
+    if (!nome || !fone){ $('#nErr').textContent = 'Preencha nome e WhatsApp.'; return; }
+    if (fone.length < 10){ $('#nErr').textContent = 'Confira o WhatsApp: coloque o DDD e o número.'; return; }
+    if (!hora){ $('#nErr').textContent = 'Esse dia não tem horário livre para este dentista. Escolha outro dia ou dentista.'; return; }
+    enviando = true;
+    const tipo = $('#nTipo').value;
+    const { data, error } = await sb.from('consultas').insert({
+      paciente:nome, telefone:foneWa(fone), dentista:$('#nDen').value, inicio:hora, duracao_min:CFG.duracao_min,
+      tipo, motivo:$('#nMot').value.trim() || TIPOS[tipo].label, status:'agendada', origem:'recepcao'
+    }).select().single();
+    enviando = false;
+    if (error){ $('#nErr').textContent = error.code==='23505' ? 'Esse horário acabou de ser ocupado. Escolha outro.' : 'Não consegui agendar: ' + error.message; return; }
+    const c = deLinha(data);
+    if (!consultas.some(x => x.id===c.id)) consultas.push(c);
+    state.dia = sod(c.inicio); state.semana = segundaDa(c.inicio); state.tab = 'agenda'; state.flash = c.id;
+    fecharSheet();
+    toast(`Consulta de ${nome.split(' ')[0]} marcada para ${fmtCurto(c.inicio)} às ${hm(c.inicio)}`);
+  });
+}
+
+/* ---------- avisos ---------- */
+let toastTimer = null;
+function toast(txt, opts={}){
+  const t = $('#toast');
+  t.className = 'toast' + (opts.urg ? ' urg' : '');
+  t.innerHTML = `<span>${esc(txt)}</span>` + (opts.id ? `<button class="btn small" data-id="${opts.id}">Ver</button>` : '');
+  requestAnimationFrame(() => t.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), opts.id ? 7000 : 2600);
+}
+
+/* ---------- eventos ---------- */
+document.addEventListener('click', e => {
+  const tab = e.target.closest('nav.tabs button');
+  if (tab){ if (tab.dataset.tab !== 'ajustes') rascunho = null; state.tab = tab.dataset.tab; render(); window.scrollTo({top:0}); return; }
+  const idEl = e.target.closest('[data-id]');
+  if (idEl && !e.target.closest('#overlay .x')){
+    const id = idEl.dataset.id;
+    if (e.target.closest('#toast')){ $('#toast').classList.remove('show'); const c = consultas.find(x=>x.id===id); if (c){ state.tab='agenda'; state.dia=sod(c.inicio); state.semana=segundaDa(c.inicio); render(); } }
+    abrirConsulta(id); return;
+  }
+  const pac = e.target.closest('[data-pac]'); if (pac){ abrirPaciente(pac.dataset.pac); return; }
+  const dia = e.target.closest('[data-dia]'); if (dia){ state.dia = new Date(dia.dataset.dia); renderAgenda(); return; }
+  if (e.target.closest('#prevW')){ state.semana = addDays(state.semana,-7); state.dia = primeiroAberto(state.semana); renderAgenda(); return; }
+  if (e.target.closest('#nextW')){ state.semana = addDays(state.semana,7); state.dia = primeiroAberto(state.semana); renderAgenda(); return; }
+  if (e.target === overlay) fecharSheet();
+});
+document.addEventListener('keydown', e => { if (e.key==='Escape' && overlay.classList.contains('open')) fecharSheet(); });
+$('#fab').addEventListener('click', abrirNova);
+setInterval(() => { if (CFG && state.tab==='agenda' && !overlay.classList.contains('open')) renderAgenda(); }, 60000);
+
+/* Já logado neste aparelho? Entra direto. */
+sb.auth.getSession().then(({ data }) => {
+  if (!data.session) return;
+  if (TIPO_LINK === 'invite' || TIPO_LINK === 'recovery') pedirSenha();
+  else entrarNoApp(data.session.user);
+});
+sb.auth.onAuthStateChange(ev => { if (ev === 'PASSWORD_RECOVERY') pedirSenha(); });
+})();
+</script>
+</body>
+</html>
