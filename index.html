@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Painel da Clínica</title>
+<title>Agenda</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -243,16 +243,46 @@ details.conv[open] summary{border-bottom:1px solid var(--line)}
 .mnav{display:flex;gap:6px}
 .aviso{background:var(--warn-soft);border-radius:14px;padding:12px 14px;font-size:14px;margin-bottom:12px;display:flex;gap:10px;align-items:center;justify-content:space-between}
 .loading{padding:40px 0;text-align:center;color:var(--muted)}
+.slist{display:flex;flex-direction:column;gap:6px}
+.shead,.srow{display:grid;grid-template-columns:1fr 74px 92px 34px;gap:6px;align-items:center}
+.shead span{font-size:12px;color:var(--muted);font-weight:600}
+.srow input{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 10px;min-width:0;width:100%}
+.srow input[type=number]{text-align:right}
+.iconbtn.sm{width:34px;height:34px}
+.hlist{display:flex;flex-direction:column;gap:6px}
+.hdia{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.hdia.off .hps{display:none}
+.hck{display:inline-flex!important;align-items:center;gap:6px;font-weight:700;min-width:62px;color:var(--ink)}
+.hck input{accent-color:var(--accent)}
+.hps{display:flex;align-items:center;gap:4px;width:100%;color:var(--muted);font-size:13px}
+.hps input{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:6px 4px;font-size:14px;flex:1;min-width:0;width:0}
+.hps .sep{margin:0 4px}
+textarea{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 13px;font:inherit;font-size:15px;color:var(--ink);resize:vertical}
+body.modo-admin nav.tabs{display:none}
+.alist{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.acard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.acard.pausado{opacity:.75}
+.ahd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.ahd b{display:block;font-size:16px}
+.ahd span{font-size:13px;color:var(--muted)}
+.anum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 4px}
+.anum div{background:var(--surface-2);border-radius:12px;padding:8px 10px}
+.anum b{display:block;font-size:19px;font-weight:800}
+.anum span{font-size:12px;color:var(--muted);line-height:1.2;display:block}
+.amais{margin-top:8px}
+.amais summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14px}
+.amais .form{margin-top:10px}
+#trocaCli{flex:none}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <section class="login" id="login" aria-labelledby="loginTitle">
   <div class="lcard">
-    <div class="lmark" aria-hidden="true">OG</div>
+    <div class="lmark" aria-hidden="true">AG</div>
     <span class="eyebrow"><i></i>Agente online 24h</span>
-    <h1 id="loginTitle">Odontologia <em>Garcia</em></h1>
-    <p class="lsub">Painel da recepção</p>
+    <h1 id="loginTitle">Agenda <em>no WhatsApp</em></h1>
+    <p class="lsub">Painel de agendamentos</p>
     <form class="form" id="loginForm" novalidate>
       <label for="lEmail">E-mail<input id="lEmail" type="email" autocomplete="username" placeholder="recepcao@suaclinica.com.br"></label>
       <label for="lSenha">Senha<input id="lSenha" type="password" autocomplete="current-password"></label>
@@ -267,27 +297,28 @@ details.conv[open] summary{border-bottom:1px solid var(--line)}
       <div class="err" id="sErr"></div>
       <button class="btn primary" type="button" data-enviar style="justify-content:center">Salvar senha e entrar</button>
     </form>
-    <p class="lnote" id="lNote">Acesso só para a equipe da clínica.</p>
+    <p class="lnote" id="lNote">Acesso só para a equipe de cada negócio.</p>
   </div>
 </section>
 
 <div class="app">
   <header class="top">
     <div class="brand">
-      <h1 id="nomeClinica">Odontologia <em>Garcia</em></h1>
+      <h1 id="nomeClinica">Carregando…</h1>
       <div class="sub"><span class="live" id="liveDot" aria-hidden="true"></span><span id="agentStatus">Conectando…</span></div>
     </div>
+    <button class="btn small hidden" id="trocaCli" type="button">Trocar</button>
   </header>
 
   <main id="view"></main>
 </div>
 
-<button class="fab" id="fab" aria-label="Nova consulta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Nova consulta</button>
+<button class="fab" id="fab" aria-label="Novo agendamento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span id="fabTxt">Novo agendamento</span></button>
 
 <nav class="tabs" aria-label="Seções">
   <div class="in">
     <button data-tab="agenda" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>Agenda</button>
-    <button data-tab="pacientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c2 .6 3.2 2.3 3.5 5.2"/></svg>Pacientes</button>
+    <button data-tab="pacientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c2 .6 3.2 2.3 3.5 5.2"/></svg><span id="tabPessoas">Pacientes</span></button>
     <button data-tab="resumo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Resumo</button>
     <button data-tab="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Ajustes</button>
   </div>
@@ -346,6 +377,7 @@ const I = {
   wa:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.6 7.3L3 20.5l1.7-5.2A8.4 8.4 0 1 1 21 11.5z"/></svg>'
 };
 
+
 /* ---------- conexão com o Supabase ---------- */
 /* A chave "publishable" foi feita para ficar no navegador: sem login, as regras (RLS) não deixam ler nada. */
 const SUPABASE_URL = 'https://nrerawlpzdykxbuflxkn.supabase.co';
@@ -354,35 +386,73 @@ const SUPABASE_KEY = 'sb_publishable_SYGiiu0-fIMDl7E9WUdIRg_HB--U0TG';
 const TIPO_LINK = new URLSearchParams(location.hash.slice(1)).get('type');
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* ---------- dados (vêm do banco) ---------- */
-let CFG = null;                       // linha da tabela config (mesmo formato que o agente lê)
-let DENTISTAS = [];
-let consultas = [];
-const conversas = new Map();          // telefone -> {nome, humano}
-const CORES = ['var(--d1)','var(--d2)','var(--d3)','var(--d4)'];
-const denById = id => DENTISTAS.find(d=>d.id===id) || {id, nome:'Dentista removido', cor:'var(--muted)'};
-const TIPOS = {
-  rotina:{label:'Rotina'}, avaliacao:{label:'Avaliação'}, retorno:{label:'Retorno'}, urgencia:{label:'Urgência'}
+/* ---------- termos de cada tipo de negócio ---------- */
+const SEG = {
+  odontologia:{ rotulo:'Clínica odontológica', prof:'Dentista', profs:'Dentistas', pessoa:'Paciente', pessoas:'Pacientes', atend:'consulta' },
+  medico:     { rotulo:'Consultório médico',   prof:'Médico(a)', profs:'Médicos', pessoa:'Paciente', pessoas:'Pacientes', atend:'consulta' },
+  psicologo:  { rotulo:'Psicologia',           prof:'Psicólogo(a)', profs:'Psicólogos', pessoa:'Paciente', pessoas:'Pacientes', atend:'sessão' },
+  barbearia:  { rotulo:'Barbearia',            prof:'Barbeiro', profs:'Barbeiros', pessoa:'Cliente', pessoas:'Clientes', atend:'horário' },
+  estetica:   { rotulo:'Estética / beleza',    prof:'Profissional', profs:'Profissionais', pessoa:'Cliente', pessoas:'Clientes', atend:'atendimento' },
+  outro:      { rotulo:'Outro negócio',        prof:'Profissional', profs:'Profissionais', pessoa:'Cliente', pessoas:'Clientes', atend:'atendimento' }
 };
+const seg = () => SEG[(CLI && CLI.segmento) || 'outro'] || SEG.outro;
+
+/* ---------- dados (vêm do banco) ---------- */
+const sessao = { email:'', id:'', admin:false };
+let meusClientes = [];               // [{id, nome, segmento, ativo, phone_number_id, papel}]
+let CLI = null;                      // linha do cliente aberto
+let CFG = null;                      // configuração normalizada (mesmo formato que o agente lê)
+let SERVICOS = [];                   // todos os serviços do cliente (ativos e inativos)
+let DENTISTAS = [];                  // profissionais, com cor
+let consultas = [];
+const conversas = new Map();         // telefone -> {nome, humano}
+const CORES = ['var(--d1)','var(--d2)','var(--d3)','var(--d4)'];
+const denById = id => DENTISTAS.find(d=>d.id===id) || {id, nome:'Profissional removido', cor:'var(--muted)'};
+const servById = id => SERVICOS.find(s => s.id===id) || null;
+const servAtivos = () => SERVICOS.filter(s => s.ativo);
 const STATUS_CURTO = { agendada:['A confirmar','warn'], confirmada:['Confirmada','ok'], concluida:['Atendida',''], faltou:['Faltou','bad'], cancelada:['Cancelada',''] };
+const DIAS_NOMES = [[1,'Seg'],[2,'Ter'],[3,'Qua'],[4,'Qui'],[5,'Sex'],[6,'Sáb'],[0,'Dom']];
 const agora = () => new Date();
 let HOJE = sod(new Date());
-const toMin = s => { const [h,m] = String(s).split(':').map(Number); return (h||0)*60 + (m||0); };
+const toMin = s => { const [h,m] = String(s||'').split(':').map(Number); return (h||0)*60 + (m||0); };
+const hhmm = m => pad(Math.floor(m/60)) + ':' + pad(m%60);
 
-function aplicarConfig(dados){
-  CFG = Object.assign({ dias:{}, manha:['08:00','12:00'], tarde:['14:00','18:00'], sabado:['08:00','12:00'], duracao_min:30, dentistas:[], valores:{} }, dados);
-  CFG.valores = Object.assign({rotina:0, avaliacao:0, retorno:0, urgencia:0}, CFG.valores || {});
-  DENTISTAS = CFG.dentistas.map((d,i) => ({ id:d.id, nome:d.nome, cor:CORES[i % CORES.length] }));
+/* Aceita o formato antigo (manha/tarde/sabado, dentistas) e o novo (horarios por dia, profissionais) */
+function normalizarCfg(bruto, nome){
+  const c = JSON.parse(JSON.stringify(bruto || {}));
+  if (!c.horarios){
+    const h = {};
+    for (const g of [0,1,2,3,4,5,6]){
+      if (!c.dias || !c.dias[String(g)]) { h[String(g)] = []; continue; }
+      h[String(g)] = (g===6 || g===0) ? [c.sabado || ['08:00','12:00']] : [c.manha || ['08:00','12:00'], c.tarde || ['14:00','18:00']];
+    }
+    c.horarios = h;
+  }
+  for (const g of [0,1,2,3,4,5,6]) if (!Array.isArray(c.horarios[String(g)])) c.horarios[String(g)] = [];
+  c.profissionais = c.profissionais || c.dentistas || [];
+  c.intervalo_min = Number(c.intervalo_min || c.duracao_min || 30);
+  delete c.dentistas; delete c.dias; delete c.manha; delete c.tarde; delete c.sabado; delete c.duracao_min; delete c.valores;
+  c.nome = c.nome || nome || '';
+  c.endereco = c.endereco || '';
+  return c;
+}
+function aplicarCliente(linha){
+  CLI = linha;
+  CFG = normalizarCfg(linha.config, linha.nome);
+  DENTISTAS = CFG.profissionais.map((d,i) => ({ id:d.id, nome:d.nome, cor:CORES[i % CORES.length] }));
 }
 function deLinha(r){
+  const ini = new Date(r.inicio);
   return {
-    id:r.id, paciente:r.paciente, telefone:r.telefone, dentista:r.dentista, inicio:new Date(r.inicio),
-    duracao:r.duracao_min || 30, motivo:r.motivo || '', tipo:r.tipo || 'rotina', status:r.status || 'agendada',
+    id:r.id, paciente:r.paciente, telefone:r.telefone, dentista:r.dentista, inicio:ini,
+    duracao:r.duracao_min || 30, fim: r.fim ? new Date(r.fim) : addMin(ini, r.duracao_min || 30),
+    motivo:r.motivo || '', tipo:r.tipo || 'rotina', status:r.status || 'agendada', servicoId:r.servico_id || null,
     origem:r.origem || 'agente', criadoEm:new Date(r.criado_em || r.inicio), valor: r.valor == null ? null : Number(r.valor)
   };
 }
-/* Valor de uma consulta: o valor lançado nela, ou o da tabela de valores por tipo */
-const valorDe = c => c.valor != null ? c.valor : Number(CFG.valores[c.tipo] || 0);
+/* Valor de um atendimento: o valor lançado nele, ou o preço do serviço */
+const valorDe = c => c.valor != null ? c.valor : Number((servById(c.servicoId) || {}).preco || 0);
+const nomeServ = c => (servById(c.servicoId) || {}).nome || '';
 
 /* Telefones: o WhatsApp manda 5513999998888; mostramos (13) 99999-8888 */
 function soDigitos(t){ return String(t||'').replace(/\D/g,''); }
@@ -402,66 +472,77 @@ const ehNova = c => c.tipo==='urgencia' && c.status!=='cancelada' && c.origem===
 
 /* ---------- horários (mesma regra do agente) ---------- */
 function periodos(day){
-  const g = day.getDay();
-  if (!CFG.dias[String(g)]) return [];
-  if (g===6 || g===0) return [CFG.sabado];
-  return [CFG.manha, CFG.tarde];
+  return (CFG.horarios[String(day.getDay())] || []).filter(p => p && p[0] && p[1] && toMin(p[0]) < toMin(p[1]));
 }
-function slotsDoDia(day){
+function slotsDoDia(day, dur){
+  dur = dur || (servAtivos()[0] || {}).duracao_min || CFG.intervalo_min || 30;
+  const passo = Math.max(5, CFG.intervalo_min || 30);
   const out = [];
   for (const [a,b] of periodos(day)){
-    for (let m = toMin(a); m + CFG.duracao_min <= toMin(b); m += CFG.duracao_min){
+    for (let m = toMin(a); m + dur <= toMin(b); m += passo){
       const d = new Date(day); d.setHours(Math.floor(m/60), m%60, 0, 0); out.push(d);
     }
   }
   return out;
 }
-const diaAberto = d => slotsDoDia(d).length > 0;
-const livre = (denId, inicio) => !consultas.some(c => c.dentista===denId && c.status!=='cancelada' && c.inicio.getTime()===inicio.getTime());
+const diaAberto = d => periodos(d).length > 0;
+const livre = (denId, ini, dur, ignorar) => {
+  const fim = addMin(ini, dur);
+  return !consultas.some(c => c.id!==ignorar && c.dentista===denId && c.status!=='cancelada' && ini < c.fim && fim > c.inicio);
+};
 
 /* ---------- carregar e acompanhar em tempo real ---------- */
 let canal = null;
-async function carregar(){
+async function carregarCliente(id){
   view.innerHTML = '<div class="loading">Carregando a agenda…</div>';
   const desde = addDays(sod(agora()), -180).toISOString();
-  const [rc, rq, rv] = await Promise.all([
-    sb.from('config').select('dados').eq('id',1).single(),
-    sb.from('consultas').select('*').gte('inicio', desde).order('inicio'),
-    sb.from('conversas').select('telefone,nome,humano')
+  const [rc, rs, rq, rv] = await Promise.all([
+    sb.from('clientes').select('*').eq('id', id).single(),
+    sb.from('servicos').select('*').eq('cliente_id', id).order('ordem'),
+    sb.from('consultas').select('*').eq('cliente_id', id).gte('inicio', desde).order('inicio'),
+    sb.from('conversas').select('telefone,nome,humano').eq('cliente_id', id)
   ]);
-  const erro = rc.error || rq.error || rv.error;
+  const erro = rc.error || rs.error || rq.error || rv.error;
   if (erro){ view.innerHTML = `<div class="empty">Não consegui ler os dados: ${esc(erro.message)}</div>`; return false; }
-  aplicarConfig(rc.data.dados);
+  aplicarCliente(rc.data);
+  SERVICOS = rs.data;
   consultas = rq.data.map(deLinha);
   conversas.clear(); rv.data.forEach(c => conversas.set(c.telefone, c));
-  state.dia = primeiroAberto(HOJE); state.semana = segundaDa(state.dia);
+  try { localStorage.setItem('og_cli', id); } catch(_){}
+  state.dia = primeiroAberto(HOJE); state.semana = segundaDa(state.dia); state.dentista = 'todos'; rascunho = null;
   atualizarCabecalho();
-  ouvir();
+  ouvir(id);
   return true;
 }
-function ouvir(){
+function ouvir(id){
   if (canal) sb.removeChannel(canal);
-  canal = sb.channel('painel')
-    .on('postgres_changes', {event:'*', schema:'public', table:'consultas'}, p => {
+  const f = `cliente_id=eq.${id}`;
+  canal = sb.channel('painel-' + id)
+    .on('postgres_changes', {event:'*', schema:'public', table:'consultas', filter:f}, p => {
       if (p.eventType === 'DELETE'){ consultas = consultas.filter(c => c.id !== p.old.id); }
       else {
         const c = deLinha(p.new);
         const i = consultas.findIndex(x => x.id === c.id);
         if (i >= 0) consultas[i] = c; else {
           consultas.push(c);
-          if (c.origem === 'agente') toast(`${c.tipo==='urgencia'?'Urgência: ':'Nova consulta: '}${c.paciente.split(' ')[0]}, ${fmtCurto(c.inicio)} às ${hm(c.inicio)}`, {id:c.id, urg:c.tipo==='urgencia'});
+          if (c.origem === 'agente') toast(`${c.tipo==='urgencia'?'Urgência: ':'Novo agendamento: '}${c.paciente.split(' ')[0]}, ${fmtCurto(c.inicio)} às ${hm(c.inicio)}`, {id:c.id, urg:c.tipo==='urgencia'});
         }
       }
       redesenhar();
     })
-    .on('postgres_changes', {event:'INSERT', schema:'public', table:'mensagens'}, p => {
+    .on('postgres_changes', {event:'INSERT', schema:'public', table:'mensagens', filter:f}, p => {
       if (abertaTelefone && p.new.telefone === abertaTelefone && abertaId) abrirConsulta(abertaId, true);
     })
-    .on('postgres_changes', {event:'*', schema:'public', table:'conversas'}, p => {
+    .on('postgres_changes', {event:'*', schema:'public', table:'conversas', filter:f}, p => {
       if (p.new && p.new.telefone) conversas.set(p.new.telefone, p.new);
     })
-    .on('postgres_changes', {event:'UPDATE', schema:'public', table:'config'}, p => {
-      aplicarConfig(p.new.dados); atualizarCabecalho(); if (state.tab !== 'ajustes') redesenhar();
+    .on('postgres_changes', {event:'*', schema:'public', table:'servicos', filter:f}, async () => {
+      const { data } = await sb.from('servicos').select('*').eq('cliente_id', id).order('ordem');
+      if (data) SERVICOS = data;
+      if (state.tab !== 'ajustes') redesenhar();
+    })
+    .on('postgres_changes', {event:'UPDATE', schema:'public', table:'clientes', filter:`id=eq.${id}`}, p => {
+      aplicarCliente(p.new); atualizarCabecalho(); if (state.tab !== 'ajustes') redesenhar();
     })
     .subscribe();
 }
@@ -470,7 +551,7 @@ function redesenhar(){
     if (abertaId && consultas.some(c => c.id===abertaId)) abrirConsulta(abertaId, true);
     return;
   }
-  if (state.tab !== 'ajustes') render();
+  if (state.tab !== 'ajustes' && state.tab !== 'admin') render();
 }
 
 /* ---------- estado ---------- */
@@ -481,8 +562,11 @@ function primeiroAberto(d){ for (let i=0;i<14;i++){ const x = addDays(sod(d), i)
 /* ---------- renderização ---------- */
 const view = $('#view');
 function render(){
+  const noAdmin = state.tab === 'admin';
+  document.body.classList.toggle('modo-admin', noAdmin);
   document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.tab===state.tab ? 'page' : 'false'));
   $('#fab').classList.toggle('hidden', !(state.tab==='agenda' || state.tab==='pacientes'));
+  if (noAdmin) return renderAdmin();
   if (!CFG) return;
   if (state.tab==='agenda') renderAgenda();
   else if (state.tab==='pacientes') renderPacientes();
@@ -494,11 +578,12 @@ const curto = nome => nome.split(' ').slice(0,2).join(' ');
 function cardHTML(c, comDentista=true){
   const [lab, cls] = STATUS_CURTO[c.status] || ['',''];
   const passada = c.inicio < agora() && c.status!=='agendada' && c.status!=='confirmada';
-  const linha2 = c.tipo==='urgencia' ? `<span class="u">Urgência · ${esc(c.motivo)}</span>` : `<span>${esc(c.motivo || TIPOS[c.tipo]?.label || '')}</span>`;
+  const desc = c.motivo || nomeServ(c);
+  const linha2 = c.tipo==='urgencia' ? `<span class="u">Urgência · ${esc(desc)}</span>` : `<span>${esc(desc)}</span>`;
   return `<button class="card ${passada?'past':''} ${state.flash===c.id?'flash':''}" style="--stripe:${c.tipo==='urgencia'?'var(--bad)':'transparent'}" data-id="${c.id}">
     <span class="t">${hm(c.inicio)}</span>
     <span class="bd"><b>${esc(c.paciente)}</b>${linha2}</span>
-    <span class="rt"><span class="st ${cls}">${lab}</span>${comDentista ? `<small>${esc(curto(denById(c.dentista).nome))}</small>` : ''}</span>
+    <span class="rt"><span class="st ${cls}">${lab}</span>${comDentista && DENTISTAS.length > 1 ? `<small>${esc(curto(denById(c.dentista).nome))}</small>` : ''}</span>
   </button>`;
 }
 
@@ -509,7 +594,7 @@ function renderAgenda(){
   let alerta = '';
   if (urg.length){
     const u = urg[0];
-    alerta = `<div class="alert"><span class="ic">${I.alert}</span><div class="tx"><b>Nova urgência: ${esc(u.paciente)}</b><p>${sameDay(u.inicio,HOJE)?'Hoje':fmtCurto(u.inicio)} às ${hm(u.inicio)} · agendada pelo agente ${relTempo(u.criadoEm)}</p></div><button class="btn small" data-id="${u.id}">Ver</button></div>`;
+    alerta = `<div class="alert"><span class="ic">${I.alert}</span><div class="tx"><b>Urgência: ${esc(u.paciente)}</b><p>${sameDay(u.inicio,HOJE)?'Hoje':fmtCurto(u.inicio)} às ${hm(u.inicio)} · marcada pelo agente ${relTempo(u.criadoEm)}</p></div><button class="btn small" data-id="${u.id}">Ver</button></div>`;
   }
   const dias = [];
   for (let i=0;i<7;i++){
@@ -526,15 +611,15 @@ function renderAgenda(){
   const anteriores = ehHoje ? lista.filter(c => c.inicio <= now) : [];
   const proximas = ehHoje ? lista.filter(c => c.inicio > now) : lista;
   if (anteriores.length){
-    items += `<button class="btn small ghost" id="togAnt" style="align-self:center">${state.verAnteriores ? 'Esconder' : 'Mostrar'} ${anteriores.length} consulta${anteriores.length>1?'s':''} de mais cedo</button>`;
+    items += `<button class="btn small ghost" id="togAnt" style="align-self:center">${state.verAnteriores ? 'Esconder' : 'Mostrar'} ${anteriores.length} de mais cedo</button>`;
     if (state.verAnteriores) items += anteriores.map(c => cardHTML(c, state.dentista==='todos')).join('');
   }
   if (ehHoje) items += `<div class="now">Agora · ${hm(now)}</div>`;
   items += proximas.map(c => cardHTML(c, state.dentista==='todos')).join('');
-  if (ehHoje && !proximas.length && lista.length) items += `<div class="empty">Não há mais consultas hoje.</div>`;
-  if (!lista.length) items = `<div class="empty">Nenhuma consulta neste dia.</div>`;
+  if (ehHoje && !proximas.length && lista.length) items += `<div class="empty">Não há mais agendamentos hoje.</div>`;
+  if (!lista.length) items = `<div class="empty">Nenhum agendamento neste dia.</div>`;
   const titulo = sameDay(state.dia,HOJE) ? 'Hoje' : sameDay(state.dia, addDays(HOJE,1)) ? 'Amanhã' : state.dia.toLocaleDateString('pt-BR',{weekday:'long'});
-  const sub = `${state.dia.toLocaleDateString('pt-BR',{day:'numeric',month:'long'})} · ${lista.length} consulta${lista.length===1?'':'s'}${aConfirmar?` · ${aConfirmar} a confirmar`:''}`;
+  const sub = `${state.dia.toLocaleDateString('pt-BR',{day:'numeric',month:'long'})} · ${lista.length} agendamento${lista.length===1?'':'s'}${aConfirmar?` · ${aConfirmar} a confirmar`:''}`;
   view.innerHTML = `
     ${alerta}
     <div class="week">
@@ -544,14 +629,14 @@ function renderAgenda(){
     </div>
     <div class="dayhead">
       <div><h2 style="text-transform:capitalize">${titulo}</h2><span class="meta">${sub}</span></div>
-      <select class="dsel" id="dSel" aria-label="Filtrar por dentista">
+      ${DENTISTAS.length > 1 ? `<select class="dsel" id="dSel" aria-label="Filtrar por ${seg().prof.toLowerCase()}">
         <option value="todos">Todos</option>
-        ${DENTISTAS.map(d => `<option value="${d.id}" ${state.dentista===d.id?'selected':''}>${esc(d.nome)}</option>`).join('')}
-      </select>
+        ${DENTISTAS.map(d => `<option value="${esc(d.id)}" ${state.dentista===d.id?'selected':''}>${esc(d.nome)}</option>`).join('')}
+      </select>` : ''}
     </div>
     <div class="timeline">${items}</div>
-    ${canceladas ? `<p class="hint">${canceladas} cancelada${canceladas>1?'s':''} neste dia não aparece${canceladas>1?'m':''} na lista.</p>` : ''}`;
-  $('#dSel').onchange = e => { state.dentista = e.target.value; renderAgenda(); };
+    ${canceladas ? `<p class="hint">${canceladas} cancelado${canceladas>1?'s':''} neste dia não aparece${canceladas>1?'m':''} na lista.</p>` : ''}`;
+  const ds = $('#dSel'); if (ds) ds.onchange = e => { state.dentista = e.target.value; renderAgenda(); };
   const tg = $('#togAnt'); if (tg) tg.onclick = () => { state.verAnteriores = !state.verAnteriores; renderAgenda(); };
   state.flash = null;
 }
@@ -579,19 +664,24 @@ function renderPacientes(){
   const qd = soDigitos(q);
   const ps = pacientesAgregados().filter(p => !q || p.nome.toLowerCase().includes(q) || (qd && soDigitos(p.telefone).includes(qd)));
   view.innerHTML = `
-    <div class="dayhead"><div><h2>Pacientes</h2><span class="meta">${ps.length} no cadastro</span></div></div>
-    <input class="search" id="busca" type="search" placeholder="Buscar por nome ou telefone" value="${esc(state.busca)}" aria-label="Buscar paciente">
+    <div class="dayhead"><div><h2>${seg().pessoas}</h2><span class="meta">${ps.length} no cadastro</span></div></div>
+    <input class="search" id="busca" type="search" placeholder="Buscar por nome ou telefone" value="${esc(state.busca)}" aria-label="Buscar">
     <div class="plist">${ps.map(p => `
       <button class="prow" data-pac="${esc(soDigitos(p.telefone))}">
         <span class="av">${iniciais(p.nome)}</span>
         <span class="tx"><b>${esc(p.nome)}</b><span class="num">${esc(foneBR(p.telefone))}</span></span>
-        <span class="rt">${p.proxima ? `<b class="num">${fmtCurto(p.proxima.inicio)}</b>${hm(p.proxima.inicio)}` : 'sem consulta'}</span>
-      </button>`).join('') || `<div class="empty">${consultas.length ? 'Ninguém encontrado com essa busca.' : 'As pacientes aparecem aqui depois da primeira consulta.'}</div>`}
+        <span class="rt">${p.proxima ? `<b class="num">${fmtCurto(p.proxima.inicio)}</b>${hm(p.proxima.inicio)}` : 'sem horário'}</span>
+      </button>`).join('') || `<div class="empty">${consultas.length ? 'Ninguém encontrado com essa busca.' : `Aparecem aqui depois do primeiro agendamento.`}</div>`}
     </div>`;
   $('#busca').addEventListener('input', e => { state.busca = e.target.value; const pos = e.target.selectionStart; renderPacientes(); const nb = $('#busca'); nb.focus(); try{ nb.setSelectionRange(pos,pos); }catch(_){} });
 }
 
 /* ---------- Resumo: ganhos do mês ---------- */
+function foraDoExpediente(d){
+  const ps = (CFG.horarios[String(d.getDay())] || []);
+  const m = d.getHours()*60 + d.getMinutes();
+  return !ps.some(p => p && m >= toMin(p[0]) && m < toMin(p[1]));
+}
 function renderResumo(){
   const ini = state.mes, fim = new Date(ini.getFullYear(), ini.getMonth()+1, 1);
   const doMes = consultas.filter(c => c.inicio >= ini && c.inicio < fim && c.status!=='cancelada');
@@ -603,177 +693,398 @@ function renderResumo(){
   const doAgente = doMes.filter(c => c.origem==='agente' && c.status!=='faltou');
   const passadas = atendidas.length + faltas.length;
   const taxaFalta = passadas ? Math.round(faltas.length/passadas*100) : 0;
-  const semValores = Object.values(CFG.valores).every(v => !Number(v));
+  const semValores = !servAtivos().some(s => Number(s.preco) > 0);
   const nomeMes = ini.toLocaleDateString('pt-BR',{month:'long', year:'numeric'});
   const ehMesAtual = ini.getFullYear()===HOJE.getFullYear() && ini.getMonth()===HOJE.getMonth();
-  const linhasTipo = Object.entries(TIPOS).map(([k,v]) => {
-    const cs = doMes.filter(c => c.tipo===k && c.status!=='faltou');
-    return cs.length ? `<div class="r"><span>${v.label} · ${cs.length}</span><b class="num">${brl(soma(cs))}</b></div>` : '';
-  }).join('');
-  // horário em que as pacientes marcam com o agente (últimos 30 dias)
+  const grupos = new Map();
+  for (const c of doMes.filter(c => c.status!=='faltou')){
+    const k = nomeServ(c) || (c.tipo==='urgencia' ? 'Urgência' : 'Sem serviço');
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(c);
+  }
+  const linhasServ = [...grupos.entries()].sort((a,b) => soma(b[1]) - soma(a[1]))
+    .map(([k, cs]) => `<div class="r"><span>${esc(k)} · ${cs.length}</span><b class="num">${brl(soma(cs))}</b></div>`).join('');
   const ini30 = addDays(HOJE, -29);
   const ag30 = consultas.filter(c => c.origem==='agente' && c.criadoEm >= ini30);
   const porHora = Array(24).fill(0); ag30.forEach(c => porHora[c.criadoEm.getHours()]++);
   const max = Math.max(...porHora, 1);
-  const fora = ag30.filter(c => foraHorario(c.criadoEm)).length;
+  const fora = ag30.filter(c => foraDoExpediente(c.criadoEm)).length;
+  const horaFora = h => foraDoExpediente(new Date(2026,0,5,h,30)); // segunda-feira como referência
   view.innerHTML = `
     <div class="dayhead">
       <div><h2>Resumo</h2><span class="meta">${nomeMes.charAt(0).toUpperCase()+nomeMes.slice(1)}</span></div>
       <div class="mnav"><button class="iconbtn" id="mPrev" aria-label="Mês anterior">${I.left}</button><button class="iconbtn" id="mNext" aria-label="Próximo mês" ${ehMesAtual?'disabled':''}>${I.right}</button></div>
     </div>
-    ${semValores ? `<div class="aviso"><span>Os valores das consultas ainda não foram preenchidos, por isso os ganhos aparecem zerados.</span><button class="btn small" id="irValores">Preencher</button></div>` : ''}
+    ${semValores ? `<div class="aviso"><span>Os preços dos serviços ainda não foram preenchidos, por isso os ganhos aparecem zerados.</span><button class="btn small" id="irValores">Preencher</button></div>` : ''}
     <div class="hero">
-      <span>Ganhos com consultas atendidas</span>
+      <span>Ganhos com atendimentos realizados</span>
       <b class="num">${brl(recebido)}</b>
-      <small>${atendidas.length} atendida${atendidas.length===1?'':'s'}${previstas.length ? ` · mais <strong class="num">${brl(previsto)}</strong> previstos em ${previstas.length} agendada${previstas.length===1?'':'s'}` : ''}</small>
+      <small>${atendidas.length} atendido${atendidas.length===1?'':'s'}${previstas.length ? ` · mais <strong class="num">${brl(previsto)}</strong> previstos em ${previstas.length} agendado${previstas.length===1?'':'s'}` : ''}</small>
     </div>
     <div class="trio">
-      <div class="mini"><b class="num">${brl(soma(doAgente))}</b><span>em ${doAgente.length} consulta${doAgente.length===1?'':'s'} do agente</span></div>
+      <div class="mini"><b class="num">${brl(soma(doAgente))}</b><span>em ${doAgente.length} agendamento${doAgente.length===1?'':'s'} do agente</span></div>
       <div class="mini"><b class="num">${taxaFalta}%</b><span>de faltas (${faltas.length})</span></div>
-      <div class="mini"><b class="num">${fora}</b><span>marcadas fora do expediente (30 dias)</span></div>
+      <div class="mini"><b class="num">${fora}</b><span>marcados fora do expediente (30 dias)</span></div>
     </div>
     <div class="panel">
-      <h3>Por tipo de consulta</h3>
-      <p class="d">Atendidas e agendadas no mês. Cada consulta usa o valor lançado nela ou, se não tiver, o valor do tipo em Ajustes.</p>
-      <div class="infobox tipos" style="margin:0">${linhasTipo || '<div class="r"><span>Nenhuma consulta neste mês.</span></div>'}</div>
+      <h3>Por serviço</h3>
+      <p class="d">Realizados e agendados no mês. Cada um usa o valor lançado nele ou, se não tiver, o preço do serviço em Ajustes.</p>
+      <div class="infobox tipos" style="margin:0">${linhasServ || '<div class="r"><span>Nenhum agendamento neste mês.</span></div>'}</div>
     </div>
     <div class="panel">
-      <h3>Horário em que as pacientes marcam</h3>
-      <p class="d">Consultas marcadas pelo agente nos últimos 30 dias. Em azul, fora do expediente.</p>
-      <div class="hours">${porHora.map((n,h) => `<div class="${foraHorario(new Date(2026,0,5,h))?'off':''}" style="height:${Math.max(2,n/max*100)}%" title="${pad(h)}h: ${n}"></div>`).join('')}</div>
+      <h3>Horário em que as pessoas marcam</h3>
+      <p class="d">Agendamentos feitos pelo agente nos últimos 30 dias. Em azul, fora do expediente.</p>
+      <div class="hours">${porHora.map((n,h) => `<div class="${horaFora(h)?'off':''}" style="height:${Math.max(2,n/max*100)}%" title="${pad(h)}h: ${n}"></div>`).join('')}</div>
       <div class="haxis">${porHora.map((_,h) => `<span>${h%6===0?pad(h)+'h':''}</span>`).join('')}</div>
     </div>`;
   $('#mPrev').onclick = () => { state.mes = new Date(ini.getFullYear(), ini.getMonth()-1, 1); renderResumo(); };
   $('#mNext').onclick = () => { if (!ehMesAtual){ state.mes = new Date(ini.getFullYear(), ini.getMonth()+1, 1); renderResumo(); } };
-  const iv = $('#irValores'); if (iv) iv.onclick = () => { state.tab = 'ajustes'; state.focoValores = true; render(); };
+  const iv = $('#irValores'); if (iv) iv.onclick = () => { state.tab = 'ajustes'; state.focoServicos = true; render(); };
 }
 
-/* ---------- Ajustes (gravam na tabela config, que o agente lê) ---------- */
-const DIAS_NOMES = [[1,'Seg'],[2,'Ter'],[3,'Qua'],[4,'Qui'],[5,'Sex'],[6,'Sáb']];
-let rascunho = null;
+/* ---------- Ajustes (gravam no cliente e nos serviços, que o agente lê) ---------- */
+let rascunho = null;      // { cfg, servicos }
 function renderAjustes(){
-  if (!rascunho) rascunho = JSON.parse(JSON.stringify(CFG));
-  const c = rascunho;
+  if (!rascunho) rascunho = { cfg: JSON.parse(JSON.stringify(CFG)), servicos: JSON.parse(JSON.stringify(servAtivos())) };
+  const c = rascunho.cfg, S = seg();
+  const linhaDia = ([g, n]) => {
+    const ps = c.horarios[String(g)] || [];
+    const p1 = ps[0] || ['', ''], p2 = ps[1] || ['', ''];
+    const on = ps.length > 0;
+    return `<div class="hdia ${on?'':'off'}">
+      <label class="hck" for="dia${g}"><input type="checkbox" id="dia${g}" data-dia-cfg="${g}" ${on?'checked':''}>${n}</label>
+      <span class="hps">
+        <input type="time" data-h="${g}-0-0" value="${p1[0]||''}" aria-label="${n}, início"><span>–</span><input type="time" data-h="${g}-0-1" value="${p1[1]||''}" aria-label="${n}, fim">
+        <span class="sep">e</span>
+        <input type="time" data-h="${g}-1-0" value="${p2[0]||''}" aria-label="${n}, segundo período início"><span>–</span><input type="time" data-h="${g}-1-1" value="${p2[1]||''}" aria-label="${n}, segundo período fim">
+      </span>
+    </div>`;
+  };
   view.innerHTML = `
     <div class="dayhead"><div><h2>Ajustes</h2><span class="meta">O agente segue estas regras</span></div></div>
     <form class="cfg" id="cfgForm" novalidate>
       <div class="panel">
-        <h3>Clínica</h3>
-        <p class="d">O agente usa estes dados nas respostas e na localização.</p>
+        <h3>Negócio</h3>
+        <p class="d">${esc(S.rotulo)}. O agente usa estes dados nas respostas e na localização.</p>
         <div class="form">
           <label for="cNome">Nome<input id="cNome" value="${esc(c.nome||'')}"></label>
           <label for="cEnd">Endereço<input id="cEnd" value="${esc(c.endereco||'')}"></label>
         </div>
       </div>
-      <div class="panel" id="pValores">
-        <h3>Valores das consultas</h3>
-        <p class="d">Usados só no Resumo para calcular os ganhos. O agente não informa preços às pacientes. Dá para mudar o valor de uma consulta específica ao abri-la.</p>
-        <div>${Object.entries(TIPOS).map(([k,v]) => `<label class="vrow" for="v_${k}"><span>${v.label}</span><input id="v_${k}" type="number" min="0" step="5" inputmode="decimal" class="num" value="${Number(c.valores[k])||''}" placeholder="R$ 0"></label>`).join('')}</div>
+      <div class="panel" id="pServicos">
+        <h3>Serviços</h3>
+        <p class="d">O agente oferece estes serviços e usa a duração para achar horários. O preço entra no Resumo${c.informar_precos ? ' e é informado às pessoas' : ''}.</p>
+        <div class="slist">
+          <div class="shead"><span>Serviço</span><span>Minutos</span><span>Preço (R$)</span><span></span></div>
+          ${rascunho.servicos.map((s,i) => `<div class="srow">
+            <input data-s="${i}-nome" value="${esc(s.nome)}" aria-label="Nome do serviço">
+            <input data-s="${i}-dur" type="number" min="5" max="480" step="5" inputmode="numeric" value="${s.duracao_min}" aria-label="Duração em minutos">
+            <input data-s="${i}-preco" type="number" min="0" step="5" inputmode="decimal" value="${Number(s.preco)||''}" placeholder="0" aria-label="Preço">
+            <button type="button" class="iconbtn sm" data-rm-serv="${i}" aria-label="Remover ${esc(s.nome)}">${I.x}</button>
+          </div>`).join('')}
+        </div>
+        <button type="button" class="btn small" id="addServ" style="margin-top:8px">Adicionar serviço</button>
       </div>
       <div class="panel">
         <h3>Horário de atendimento</h3>
-        <p class="d">O agente só oferece horários dentro destes períodos.</p>
-        <div class="form">
-          <div class="dias">${DIAS_NOMES.map(([g,n]) => `<label for="dia${g}"><input type="checkbox" id="dia${g}" data-dia-cfg="${g}" ${c.dias[String(g)]?'checked':''}>${n}</label>`).join('')}</div>
-          <div class="per"><span>Manhã</span><input type="time" id="m1" value="${c.manha[0]}" aria-label="Manhã, início"><input type="time" id="m2" value="${c.manha[1]}" aria-label="Manhã, fim"></div>
-          <div class="per"><span>Tarde</span><input type="time" id="t1" value="${c.tarde[0]}" aria-label="Tarde, início"><input type="time" id="t2" value="${c.tarde[1]}" aria-label="Tarde, fim"></div>
-          <div class="per ${c.dias['6']?'':'hidden'}" id="perSab"><span>Sábado</span><input type="time" id="s1" value="${c.sabado[0]}" aria-label="Sábado, início"><input type="time" id="s2" value="${c.sabado[1]}" aria-label="Sábado, fim"></div>
-          <label for="cDur">Duração de cada consulta<select id="cDur">${[20,30,40,45,60].map(m => `<option value="${m}" ${c.duracao_min===m?'selected':''}>${m} minutos</option>`).join('')}</select></label>
+        <p class="d">O agente só oferece horários dentro destes períodos. Deixe o segundo período vazio se não tiver intervalo.</p>
+        <div class="hlist">${DIAS_NOMES.map(linhaDia).join('')}</div>
+        <div class="form" style="margin-top:10px">
+          <label for="cInt">Oferecer horários a cada<select id="cInt">${[10,15,20,30,40,45,50,60].map(m => `<option value="${m}" ${c.intervalo_min===m?'selected':''}>${m} minutos</option>`).join('')}</select></label>
         </div>
       </div>
       <div class="panel">
-        <h3>Dentistas</h3>
-        <p class="d">Cada um tem sua agenda. O agente distribui as pacientes entre eles.</p>
-        <div class="dlist">${c.dentistas.map((d,i) => `<div class="drow"><i style="background:${CORES[i % CORES.length]}"></i><span>${esc(d.nome)}</span><button type="button" class="btn small danger" data-rm-den="${esc(d.id)}">Remover</button></div>`).join('')}</div>
-        <div class="addrow" style="margin-top:8px"><input id="novoDen" placeholder="Ex.: Dra. Ana Souza" aria-label="Nome do novo dentista" autocomplete="off"><button type="button" class="btn small" id="addDen">Adicionar</button></div>
+        <h3>${S.profs}</h3>
+        <p class="d">Cada um tem sua agenda. O agente distribui os horários entre eles.</p>
+        <div class="dlist">${c.profissionais.map((d,i) => `<div class="drow"><i style="background:${CORES[i % CORES.length]}"></i><span>${esc(d.nome)}</span><button type="button" class="btn small danger" data-rm-den="${esc(d.id)}">Remover</button></div>`).join('')}</div>
+        <div class="addrow" style="margin-top:8px"><input id="novoDen" placeholder="Nome" aria-label="Nome do novo profissional" autocomplete="off"><button type="button" class="btn small" id="addDen">Adicionar</button></div>
         <div class="err" id="denErr" style="color:var(--bad);font-size:13px;margin-top:6px"></div>
       </div>
       <div class="panel">
         <h3>Agente no WhatsApp</h3>
-        <p class="d">Desligado, as mensagens chegam só para a recepção responder no WhatsApp Business.</p>
+        <p class="d">Desligado, as mensagens chegam só para a equipe responder no WhatsApp Business.</p>
         <div class="form">
           <label class="toggle" for="cAg"><span class="tx"><b>Agente atendendo</b><span>Responde e agenda sozinho</span></span><input type="checkbox" class="sw acc" id="cAg" ${c.agente_ligado?'checked':''}></label>
-          <label for="cUrg">WhatsApp que recebe os alertas de urgência<input id="cUrg" inputmode="tel" placeholder="(13) 90000-0000" value="${esc(c.whats_urgencia||'')}" autocomplete="off"></label>
+          <label class="toggle" for="cPre"><span class="tx"><b>Informar preços</b><span>O agente diz o preço dos serviços quando perguntarem</span></span><input type="checkbox" class="sw" id="cPre" ${c.informar_precos?'checked':''}></label>
+          <label for="cUrg">WhatsApp que recebe os avisos urgentes<input id="cUrg" inputmode="tel" placeholder="(13) 90000-0000" value="${esc(c.whats_urgencia||'')}" autocomplete="off"></label>
+          <label for="cExtra">Instruções extras para o agente<textarea id="cExtra" rows="3" placeholder="Ex.: aceitamos Pix e cartão; estacionamento na rua de trás; não atendemos convênio">${esc(c.instrucoes_extras||'')}</textarea></label>
         </div>
       </div>
       <div class="panel">
         <h3>Conta</h3>
         <p class="d">Entrou como <b>${esc(sessao.email)}</b>.</p>
-        <button type="button" class="btn small" id="sairBtn">Sair da conta</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${sessao.admin ? '<button type="button" class="btn small" id="irAdmin">Administração</button>' : ''}
+          ${meusClientes.length > 1 ? '<button type="button" class="btn small" id="trocarCli2">Trocar de negócio</button>' : ''}
+          <button type="button" class="btn small" id="sairBtn">Sair da conta</button>
+        </div>
       </div>
       <div class="err" id="cfgErr" style="color:var(--bad);font-size:13.5px"></div>
-      <div class="savebar"><p class="note">O agente passa a usar as mudanças na próxima mensagem.</p><button class="btn primary" type="button" data-enviar>Salvar ajustes</button></div>
+      <div class="savebar"><p class="note">O agente passa a usar as mudanças em até 1 minuto.</p><button class="btn primary" type="button" data-enviar>Salvar ajustes</button></div>
     </form>`;
-  if (state.focoValores){ state.focoValores = false; $('#pValores').scrollIntoView({block:'start'}); setTimeout(() => $('#v_rotina').focus(), 50); }
+  if (state.focoServicos){ state.focoServicos = false; $('#pServicos').scrollIntoView({block:'start'}); }
   $('#sairBtn').onclick = sair;
+  const ia = $('#irAdmin'); if (ia) ia.onclick = () => { rascunho = null; state.tab = 'admin'; render(); };
+  const tc = $('#trocarCli2'); if (tc) tc.onclick = escolherCliente;
   document.querySelectorAll('[data-dia-cfg]').forEach(cb => cb.addEventListener('change', () => {
-    rascunho.dias[cb.dataset.diaCfg] = cb.checked;
-    if (cb.dataset.diaCfg==='6') $('#perSab').classList.toggle('hidden', !cb.checked);
+    lerCampos();
+    const g = cb.dataset.diaCfg;
+    if (cb.checked && !(rascunho.cfg.horarios[g] || []).length){
+      const modelo = DIAS_NOMES.map(([x]) => rascunho.cfg.horarios[String(x)]).find(p => p && p.length);
+      rascunho.cfg.horarios[g] = modelo ? JSON.parse(JSON.stringify(modelo)) : [['08:00','12:00'],['14:00','18:00']];
+    }
+    if (!cb.checked) rascunho.cfg.horarios[g] = [];
+    renderAjustes();
   }));
+  $('#addServ').onclick = () => { lerCampos(); rascunho.servicos.push({ id:null, nome:'', duracao_min: c.intervalo_min || 30, preco:0, ativo:true }); renderAjustes(); const ult = view.querySelectorAll('[data-s$="-nome"]'); ult[ult.length-1].focus(); };
+  document.querySelectorAll('[data-rm-serv]').forEach(b => b.onclick = () => {
+    lerCampos();
+    if (rascunho.servicos.length === 1){ $('#cfgErr').textContent = 'Mantenha pelo menos um serviço.'; return; }
+    rascunho.servicos.splice(Number(b.dataset.rmServ), 1); renderAjustes();
+  });
   $('#addDen').onclick = () => {
     const n = $('#novoDen').value.trim();
-    if (!n){ $('#denErr').textContent = 'Escreva o nome do dentista.'; return; }
+    if (!n){ $('#denErr').textContent = 'Escreva o nome.'; return; }
     lerCampos();
-    const prox = 1 + Math.max(0, ...rascunho.dentistas.map(d => Number(String(d.id).replace(/\D/g,''))||0));
-    rascunho.dentistas.push({id:'d'+prox, nome:n});
+    const prox = 1 + Math.max(0, ...rascunho.cfg.profissionais.map(d => Number(String(d.id).replace(/\D/g,''))||0));
+    const prefixo = (rascunho.cfg.profissionais[0] && /^d\d/.test(rascunho.cfg.profissionais[0].id)) ? 'd' : 'p';
+    rascunho.cfg.profissionais.push({id: prefixo + prox, nome:n});
     renderAjustes();
   };
   $('#novoDen').addEventListener('input', () => $('#denErr').textContent = '');
   document.querySelectorAll('[data-rm-den]').forEach(b => b.onclick = () => {
     const id = b.dataset.rmDen;
     const futuras = consultas.filter(x => x.dentista===id && x.inicio > agora() && x.status!=='cancelada').length;
-    if (futuras){ $('#denErr').textContent = `Esse dentista tem ${futuras} consulta${futuras>1?'s':''} marcada${futuras>1?'s':''}. Remarque ou cancele antes de remover.`; return; }
-    if (rascunho.dentistas.length===1){ $('#denErr').textContent = 'A clínica precisa de pelo menos um dentista.'; return; }
+    if (futuras){ $('#denErr').textContent = `Tem ${futuras} agendamento${futuras>1?'s':''} futuro${futuras>1?'s':''} com essa pessoa. Remarque ou cancele antes de remover.`; return; }
+    if (rascunho.cfg.profissionais.length===1){ $('#denErr').textContent = 'Precisa de pelo menos um profissional.'; return; }
     lerCampos();
-    rascunho.dentistas = rascunho.dentistas.filter(d => d.id!==id);
+    rascunho.cfg.profissionais = rascunho.cfg.profissionais.filter(d => d.id!==id);
     renderAjustes();
   });
-  aoEnviar($('#cfgForm'), async () => {
-    lerCampos();
-    const r = rascunho;
-    if (!String(r.nome).trim()){ $('#cfgErr').textContent = 'Preencha o nome da clínica.'; return; }
-    if (toMin(r.manha[0]) >= toMin(r.manha[1]) || toMin(r.tarde[0]) >= toMin(r.tarde[1]) || toMin(r.manha[1]) > toMin(r.tarde[0])){
-      $('#cfgErr').textContent = 'Confira os horários: cada período precisa terminar depois de começar, e a tarde começa depois da manhã.'; return;
-    }
-    if (![1,2,3,4,5,6].some(g => r.dias[String(g)])){ $('#cfgErr').textContent = 'Marque pelo menos um dia de atendimento.'; return; }
-    const btn = document.querySelector('#cfgForm [data-enviar]'); btn.disabled = true;
-    const { error } = await sb.from('config').update({ dados: r }).eq('id', 1);
-    btn.disabled = false;
-    if (error){ $('#cfgErr').textContent = 'Não consegui salvar: ' + error.message; return; }
-    aplicarConfig(JSON.parse(JSON.stringify(r)));
+  aoEnviar($('#cfgForm'), salvarAjustes);
+}
+function lerCampos(){
+  const c = rascunho.cfg;
+  c.nome = $('#cNome').value; c.endereco = $('#cEnd').value;
+  for (const [g] of DIAS_NOMES){
+    if (!$('#dia'+g).checked){ c.horarios[String(g)] = []; continue; }
+    const v = (p, k) => (view.querySelector(`[data-h="${g}-${p}-${k}"]`) || {}).value || '';
+    const ps = [];
+    if (v(0,0) && v(0,1)) ps.push([v(0,0), v(0,1)]);
+    if (v(1,0) && v(1,1)) ps.push([v(1,0), v(1,1)]);
+    c.horarios[String(g)] = ps;
+  }
+  c.intervalo_min = Number($('#cInt').value);
+  c.agente_ligado = $('#cAg').checked;
+  c.informar_precos = $('#cPre').checked;
+  c.whats_urgencia = $('#cUrg').value.trim();
+  c.instrucoes_extras = $('#cExtra').value.trim();
+  rascunho.servicos.forEach((s,i) => {
+    s.nome = (view.querySelector(`[data-s="${i}-nome"]`) || {}).value?.trim() ?? s.nome;
+    s.duracao_min = Math.round(Number((view.querySelector(`[data-s="${i}-dur"]`) || {}).value) || s.duracao_min || 30);
+    s.preco = Math.max(0, Number((view.querySelector(`[data-s="${i}-preco"]`) || {}).value) || 0);
+  });
+}
+async function salvarAjustes(){
+  lerCampos();
+  const r = rascunho.cfg, err = $('#cfgErr');
+  if (!String(r.nome).trim()){ err.textContent = 'Preencha o nome do negócio.'; return; }
+  for (const [g, n] of DIAS_NOMES){
+    const ps = r.horarios[String(g)];
+    if ($('#dia'+g).checked && !ps.length){ err.textContent = `${n}: preencha o horário de início e fim, ou desmarque o dia.`; return; }
+    for (const p of ps) if (toMin(p[0]) >= toMin(p[1])){ err.textContent = `${n}: cada período precisa terminar depois de começar.`; return; }
+    if (ps.length === 2 && toMin(ps[0][1]) > toMin(ps[1][0])){ err.textContent = `${n}: o segundo período precisa começar depois do primeiro.`; return; }
+  }
+  if (!DIAS_NOMES.some(([g]) => r.horarios[String(g)].length)){ err.textContent = 'Marque pelo menos um dia de atendimento.'; return; }
+  if (rascunho.servicos.some(s => !s.nome)){ err.textContent = 'Dê um nome para cada serviço (ou remova o vazio).'; return; }
+  if (rascunho.servicos.some(s => s.duracao_min < 5 || s.duracao_min > 480)){ err.textContent = 'A duração de cada serviço precisa ficar entre 5 e 480 minutos.'; return; }
+  err.textContent = '';
+  const btn = document.querySelector('#cfgForm [data-enviar]'); btn.disabled = true;
+  try {
+    const { error } = await sb.from('clientes').update({ nome: r.nome.trim(), config: r }).eq('id', CLI.id);
+    if (error) throw error;
+    // serviços: atualiza os que ficaram, cria os novos e desativa os removidos (os agendamentos antigos continuam apontando para eles)
+    const ficam = new Set(rascunho.servicos.filter(s => s.id).map(s => s.id));
+    const saem = servAtivos().filter(s => !ficam.has(s.id)).map(s => s.id);
+    const ops = rascunho.servicos.map((s, i) => s.id
+      ? sb.from('servicos').update({ nome:s.nome, duracao_min:s.duracao_min, preco:s.preco, ordem:i+1, ativo:true }).eq('id', s.id)
+      : sb.from('servicos').insert({ cliente_id:CLI.id, nome:s.nome, duracao_min:s.duracao_min, preco:s.preco, ordem:i+1 }));
+    if (saem.length) ops.push(sb.from('servicos').update({ ativo:false }).in('id', saem));
+    const res = await Promise.all(ops);
+    const e2 = res.find(x => x.error); if (e2) throw e2.error;
+    const { data: servs } = await sb.from('servicos').select('*').eq('cliente_id', CLI.id).order('ordem');
+    SERVICOS = servs || SERVICOS;
+    aplicarCliente(Object.assign({}, CLI, { nome: r.nome.trim(), config: JSON.parse(JSON.stringify(r)) }));
+    const mc = meusClientes.find(x => x.id === CLI.id); if (mc) mc.nome = CLI.nome;
     if (!DENTISTAS.some(d => d.id===state.dentista)) state.dentista = 'todos';
     rascunho = null;
     atualizarCabecalho();
-    toast('Ajustes salvos. O agente já usa os novos dados.');
+    toast('Ajustes salvos.');
     renderAjustes();
-  });
-}
-function lerCampos(){
-  const c = rascunho;
-  c.nome = $('#cNome').value; c.endereco = $('#cEnd').value;
-  c.manha = [$('#m1').value, $('#m2').value]; c.tarde = [$('#t1').value, $('#t2').value];
-  c.sabado = [$('#s1').value, $('#s2').value];
-  c.duracao_min = Number($('#cDur').value);
-  c.agente_ligado = $('#cAg').checked;
-  c.whats_urgencia = $('#cUrg').value.trim();
-  for (const k of Object.keys(TIPOS)) c.valores[k] = Math.max(0, Number($('#v_'+k).value) || 0);
+  } catch(e){
+    err.textContent = 'Não consegui salvar: ' + (e.message || e);
+  } finally { btn.disabled = false; }
 }
 function atualizarCabecalho(){
   if (!CFG) return;
   const partes = String(CFG.nome || '').trim().split(' '); const ult = partes.pop();
-  $('#nomeClinica').innerHTML = (partes.length ? esc(partes.join(' ')) + ' ' : '') + '<em>' + esc(ult) + '</em>';
-  $('#liveDot').classList.toggle('off', !CFG.agente_ligado);
-  $('#agentStatus').textContent = CFG.agente_ligado ? 'Agente atendendo no WhatsApp' : 'Agente pausado · a recepção responde';
+  $('#nomeClinica').innerHTML = (partes.length ? esc(partes.join(' ')) + ' ' : '') + '<em>' + esc(ult || '') + '</em>';
+  document.title = CFG.nome + ' · Agenda';
+  $('#liveDot').classList.toggle('off', !CFG.agente_ligado || !CLI.ativo);
+  $('#agentStatus').textContent = !CLI.ativo ? 'Pausado pelo administrador' : CFG.agente_ligado ? 'Agente atendendo no WhatsApp' : 'Agente pausado · a equipe responde';
+  $('#tabPessoas').textContent = seg().pessoas;
+  $('#fabTxt').textContent = 'Novo agendamento';
+  $('#trocaCli').classList.toggle('hidden', !(meusClientes.length > 1 || sessao.admin));
+}
+
+/* ---------- administração (só para quem está em "admins") ---------- */
+let resumoAdmin = new Map();
+async function renderAdmin(){
+  $('#nomeClinica').innerHTML = 'Adminis<em>tração</em>';
+  $('#agentStatus').textContent = `${meusClientes.length} cliente${meusClientes.length===1?'':'s'}`;
+  $('#liveDot').classList.remove('off');
+  $('#trocaCli').classList.add('hidden');
+  if (!view.querySelector('.alist')) view.innerHTML = '<div class="loading">Carregando clientes…</div>';
+  const [rc, rr] = await Promise.all([
+    sb.from('clientes').select('id,nome,segmento,ativo,phone_number_id,plano,criado_em').order('nome'),
+    sb.rpc('resumo_clientes')
+  ]);
+  if (rc.error){ view.innerHTML = `<div class="empty">${esc(rc.error.message)}</div>`; return; }
+  meusClientes = rc.data.map(c => Object.assign(c, { papel:'admin' }));
+  resumoAdmin = new Map((rr.data || []).map(x => [x.cliente_id, x]));
+  if (state.tab !== 'admin') return;
+  $('#agentStatus').textContent = `${meusClientes.length} cliente${meusClientes.length===1?'':'s'} · ${meusClientes.filter(c=>c.ativo).length} ativo${meusClientes.filter(c=>c.ativo).length===1?'':'s'}`;
+  const segOpts = sel => Object.entries(SEG).map(([k,v]) => `<option value="${k}" ${sel===k?'selected':''}>${v.rotulo}</option>`).join('');
+  view.innerHTML = `
+    <div class="dayhead"><div><h2>Clientes</h2><span class="meta">Cada negócio tem agenda, serviços e agente próprios</span></div>
+      <button class="btn small primary" id="novoCliBtn">Novo cliente</button></div>
+    <form class="panel form hidden" id="novoCli" novalidate>
+      <h3>Novo cliente</h3>
+      <p class="d">Ele começa com horários e serviços padrão do segmento, e com o agente desligado até você conferir.</p>
+      <label for="ncNome">Nome do negócio<input id="ncNome" autocomplete="off" placeholder="Ex.: Barbearia do Zé"></label>
+      <label for="ncSeg">Tipo<select id="ncSeg">${segOpts('odontologia')}</select></label>
+      <label for="ncNum">Phone number ID da Meta (opcional)<input id="ncNum" inputmode="numeric" autocomplete="off" placeholder="Ex.: 993062443891997"></label>
+      <label for="ncEmail">E-mail do dono, para receber o convite (opcional)<input id="ncEmail" type="email" autocomplete="off"></label>
+      <div class="err" id="ncErr"></div>
+      <div style="display:flex;gap:8px"><button class="btn primary" type="button" data-enviar>Criar cliente</button><button class="btn" type="button" id="ncCancel">Cancelar</button></div>
+    </form>
+    <div class="alist">${meusClientes.map(c => {
+      const r = resumoAdmin.get(c.id) || {};
+      return `<div class="acard ${c.ativo?'':'pausado'}" data-acli="${c.id}">
+        <div class="ahd"><div><b>${esc(c.nome)}</b><span>${esc((SEG[c.segmento]||SEG.outro).rotulo)} · ${c.ativo ? '<span class="st ok">Ativo</span>' : '<span class="st bad">Pausado</span>'}</span></div>
+          <button class="btn small" data-abrir="${c.id}">Abrir painel</button></div>
+        <div class="anum">
+          <div><b class="num">${r.consultas_mes ?? 0}</b><span>agendamentos no mês</span></div>
+          <div><b class="num">${r.agente_mes ?? 0}</b><span>pelo agente</span></div>
+          <div><b class="num">${r.mensagens_30d ?? 0}</b><span>mensagens (30 dias)</span></div>
+        </div>
+        <p class="note">${c.phone_number_id ? `WhatsApp ligado (ID ${esc(c.phone_number_id)})` : '<span style="color:var(--warn)">Sem número de WhatsApp ligado</span>'} · ${r.membros ?? 0} login${(r.membros ?? 0)===1?'':'s'}${r.ultima_mensagem ? ` · última mensagem ${relTempo(new Date(r.ultima_mensagem))}` : ''}</p>
+        <details class="amais"><summary>Editar</summary>
+          <div class="form">
+            <label>Tipo<select data-aseg="${c.id}">${segOpts(c.segmento)}</select></label>
+            <label>Phone number ID da Meta<input data-anum="${c.id}" inputmode="numeric" value="${esc(c.phone_number_id||'')}" autocomplete="off"></label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn small" type="button" data-asalvar="${c.id}">Salvar</button>
+              <button class="btn small ${c.ativo?'danger':''}" type="button" data-aativo="${c.id}">${c.ativo ? 'Pausar cliente' : 'Reativar cliente'}</button>
+            </div>
+            <div class="addrow"><input data-aconv="${c.id}" type="email" placeholder="E-mail para dar acesso ao painel" autocomplete="off"><button class="btn small" type="button" data-aconvbtn="${c.id}">Convidar</button></div>
+            <div class="err" data-aerr="${c.id}"></div>
+          </div>
+        </details>
+      </div>`; }).join('') || '<div class="empty">Nenhum cliente ainda.</div>'}
+    </div>
+    <div class="panel"><h3>Sua conta</h3><p class="d">Entrou como <b>${esc(sessao.email)}</b>.</p><button class="btn small" id="sairAdm">Sair da conta</button></div>`;
+  $('#sairAdm').onclick = sair;
+  $('#novoCliBtn').onclick = () => { $('#novoCli').classList.toggle('hidden'); $('#ncNome').focus(); };
+  $('#ncCancel').onclick = () => $('#novoCli').classList.add('hidden');
+  aoEnviar($('#novoCli'), async () => {
+    const nome = $('#ncNome').value.trim(), email = $('#ncEmail').value.trim();
+    if (!nome){ $('#ncErr').textContent = 'Escreva o nome do negócio.'; return; }
+    const btn = document.querySelector('#novoCli [data-enviar]'); btn.disabled = true; btn.textContent = 'Criando…';
+    const { data, error } = await sb.functions.invoke('admin-clientes', { body: { acao:'criar', nome, segmento:$('#ncSeg').value, phone_number_id:$('#ncNum').value, email_dono:email } });
+    btn.disabled = false; btn.textContent = 'Criar cliente';
+    const msg = await erroFuncao(error, data);
+    if (msg){ $('#ncErr').textContent = msg; return; }
+    toast(data.convite ? (data.convite.convidado ? `Cliente criado. Convite enviado para ${data.convite.email}.` : `Cliente criado. ${data.convite.email} já tinha login e ganhou acesso.`) : 'Cliente criado.');
+    renderAdmin();
+  });
+  view.querySelectorAll('[data-abrir]').forEach(b => b.onclick = () => abrirCliente(b.dataset.abrir));
+  view.querySelectorAll('[data-asalvar]').forEach(b => b.onclick = async () => {
+    const id = b.dataset.asalvar, e = view.querySelector(`[data-aerr="${id}"]`);
+    const num = soDigitos(view.querySelector(`[data-anum="${id}"]`).value) || null;
+    const { error } = await sb.from('clientes').update({ segmento: view.querySelector(`[data-aseg="${id}"]`).value, phone_number_id: num }).eq('id', id);
+    if (error){ e.textContent = error.code==='23505' ? 'Esse Phone number ID já é de outro cliente.' : error.message; return; }
+    toast('Cliente atualizado.'); renderAdmin();
+  });
+  view.querySelectorAll('[data-aativo]').forEach(b => b.onclick = async () => {
+    const id = b.dataset.aativo, c = meusClientes.find(x => x.id===id);
+    const { error } = await sb.from('clientes').update({ ativo: !c.ativo }).eq('id', id);
+    if (error){ view.querySelector(`[data-aerr="${id}"]`).textContent = error.message; return; }
+    toast(c.ativo ? `${c.nome} pausado: o agente para de responder.` : `${c.nome} reativado.`); renderAdmin();
+  });
+  view.querySelectorAll('[data-aconvbtn]').forEach(b => b.onclick = async () => {
+    const id = b.dataset.aconvbtn, e = view.querySelector(`[data-aerr="${id}"]`);
+    const email = view.querySelector(`[data-aconv="${id}"]`).value.trim();
+    if (!email){ e.textContent = 'Escreva o e-mail.'; return; }
+    b.disabled = true;
+    const { data, error } = await sb.functions.invoke('admin-clientes', { body: { acao:'convidar', cliente_id:id, email } });
+    b.disabled = false;
+    const msg = await erroFuncao(error, data);
+    if (msg){ e.textContent = msg; return; }
+    toast(data.convite.convidado ? `Convite enviado para ${data.convite.email}.` : `${data.convite.email} ganhou acesso.`); renderAdmin();
+  });
+}
+async function erroFuncao(error, data){
+  if (data && data.erro) return data.erro;
+  if (!error) return '';
+  try { const j = await error.context.json(); if (j && j.erro) return j.erro; } catch(_){}
+  return 'Não consegui falar com a função admin-clientes: ' + (error.message || error);
+}
+
+/* ---------- escolher qual negócio abrir ---------- */
+async function abrirCliente(id){
+  overlay.classList.remove('open');
+  state.tab = 'agenda';
+  render();
+  if (await carregarCliente(id)) render();
+  window.scrollTo({top:0});
+}
+function escolherCliente(){
+  abertaId = abertaTelefone = null;
+  abrirSheet(`
+    <div class="hd"><h3 id="sheetTitle">Qual negócio?</h3><button class="x" aria-label="Fechar">${I.x}</button></div>
+    <div class="plist" style="margin-top:12px">${meusClientes.map(c => `
+      <button class="prow" data-trocar="${c.id}"><span class="av">${iniciais(c.nome)}</span>
+        <span class="tx"><b>${esc(c.nome)}</b><span>${esc((SEG[c.segmento]||SEG.outro).rotulo)}${c.ativo===false?' · pausado':''}</span></span>
+        <span class="rt">${CLI && CLI.id===c.id ? 'aberto' : ''}</span></button>`).join('')}
+    </div>
+    ${sessao.admin ? '<div class="actions" style="margin-top:12px"><button class="btn full" id="irAdm2">Administração</button></div>' : ''}`);
+  sheet.querySelector('.x').onclick = fecharSheet;
+  sheet.querySelectorAll('[data-trocar]').forEach(b => b.onclick = () => abrirCliente(b.dataset.trocar));
+  const ia = $('#irAdm2'); if (ia) ia.onclick = () => { overlay.classList.remove('open'); state.tab = 'admin'; render(); };
 }
 
 /* ---------- login (Supabase Auth) ---------- */
-const sessao = { email:'' };
 async function entrarNoApp(user){
-  sessao.email = user.email || '';
+  sessao.email = user.email || ''; sessao.id = user.id;
   document.body.classList.add('logged');
-  state.tab = 'agenda';
-  if (await carregar()) render();
-  window.scrollTo({top:0});
+  view.innerHTML = '<div class="loading">Entrando…</div>';
+  const [ra, rm] = await Promise.all([
+    sb.from('admins').select('user_id').eq('user_id', user.id).maybeSingle(),
+    sb.from('membros').select('papel, clientes(id,nome,segmento,ativo,phone_number_id)').eq('user_id', user.id)
+  ]);
+  sessao.admin = !!ra.data;
+  meusClientes = (rm.data || []).filter(m => m.clientes).map(m => Object.assign({}, m.clientes, { papel:m.papel }));
+  if (sessao.admin){
+    const { data } = await sb.from('clientes').select('id,nome,segmento,ativo,phone_number_id').order('nome');
+    if (data) meusClientes = data.map(c => Object.assign(c, { papel:'admin' }));
+  }
+  let ultimo = null; try { ultimo = localStorage.getItem('og_cli'); } catch(_){}
+  const alvo = meusClientes.find(c => c.id === ultimo) || (meusClientes.length === 1 || !sessao.admin ? meusClientes[0] : null);
+  if (alvo) return abrirCliente(alvo.id);
+  if (sessao.admin){ state.tab = 'admin'; return render(); }
+  view.innerHTML = '<div class="empty">Seu login ainda não está ligado a nenhum negócio. Fale com quem te convidou.</div>';
+  $('#nomeClinica').textContent = 'Sem acesso'; $('#agentStatus').textContent = sessao.email;
 }
 aoEnviar($('#loginForm'), async () => {
   const em = $('#lEmail').value.trim(), se = $('#lSenha').value;
@@ -782,7 +1093,7 @@ aoEnviar($('#loginForm'), async () => {
   const { data, error } = await sb.auth.signInWithPassword({ email: em, password: se });
   btn.disabled = false; btn.textContent = 'Entrar';
   if (error){
-    $('#lErr').textContent = /invalid/i.test(error.message) ? 'E-mail ou senha incorretos.' : /confirm/i.test(error.message) ? 'Esse e-mail ainda não foi confirmado no Supabase.' : 'Não consegui entrar: ' + error.message;
+    $('#lErr').textContent = /invalid/i.test(error.message) ? 'E-mail ou senha incorretos.' : /confirm/i.test(error.message) ? 'Esse e-mail ainda não foi confirmado.' : 'Não consegui entrar: ' + error.message;
     return;
   }
   $('#lSenha').value = ''; $('#lErr').textContent = '';
@@ -817,9 +1128,10 @@ aoEnviar($('#senhaForm'), async () => {
 async function sair(){
   await sb.auth.signOut();
   if (canal){ sb.removeChannel(canal); canal = null; }
-  CFG = null; consultas = []; rascunho = null;
-  document.body.classList.remove('logged');
+  CLI = CFG = null; consultas = []; SERVICOS = []; rascunho = null; meusClientes = []; sessao.admin = false;
+  document.body.classList.remove('logged', 'modo-admin');
   overlay.classList.remove('open');
+  state.tab = 'agenda';
   $('#lEmail').focus();
 }
 
@@ -836,8 +1148,9 @@ function fecharSheet(){ overlay.classList.remove('open'); abertaId = abertaTelef
 
 async function atualizarConsulta(c, campos, msg){
   const { error } = await sb.from('consultas').update(campos).eq('id', c.id);
-  if (error){ toast(error.code==='23505' ? 'Esse horário já está ocupado com este dentista.' : 'Não consegui salvar: ' + error.message); return false; }
-  Object.assign(c, campos.status ? {status:campos.status} : {}, 'valor' in campos ? {valor:campos.valor} : {});
+  if (error){ toast(error.code==='23P01' || error.code==='23505' ? 'Esse horário já está ocupado com este profissional.' : 'Não consegui salvar: ' + error.message); return false; }
+  if (campos.status) c.status = campos.status;
+  if ('valor' in campos) c.valor = campos.valor;
   if (msg) toast(msg);
   return true;
 }
@@ -849,33 +1162,35 @@ async function abrirConsulta(id, atualizar){
   const den = denById(c.dentista);
   const [lab] = STATUS_CURTO[c.status] || [''];
   const passada = c.inicio <= agora();
+  const sv = servById(c.servicoId);
   let principal = '';
-  if (c.status==='cancelada') principal = `<button class="btn primary full" data-st="agendada">Reativar consulta</button>`;
+  if (c.status==='cancelada') principal = `<button class="btn primary full" data-st="agendada">Reativar</button>`;
   else if (!passada && c.status==='agendada') principal = `<button class="btn primary full" data-st="confirmada">Confirmar presença</button>`;
-  else if (passada && c.status!=='concluida' && c.status!=='faltou') principal = `<button class="btn primary" data-st="concluida">Atendida</button><button class="btn" data-st="faltou">Faltou</button>`;
+  else if (passada && c.status!=='concluida' && c.status!=='faltou') principal = `<button class="btn primary" data-st="concluida">Atendido</button><button class="btn" data-st="faltou">Faltou</button>`;
   const conv = conversas.get(c.telefone) || {};
   const conversaHTML = c.origem==='agente' ? `
     <details class="conv" id="convBox" ${state.convAberta===c.id?'open':''}>
       <summary>${I.wa}Conversa com o agente<span class="c" id="convN">abrir</span></summary>
       <div class="chat" id="chat"><div class="loading" style="padding:16px 0">Carregando…</div></div>
     </details>
-    <label class="toggle" for="humano"><span class="tx"><b>Assumir conversa</b><span>O agente para de responder esta paciente. Responda pelo WhatsApp Business do celular.</span></span><input type="checkbox" class="sw" id="humano" ${conv.humano?'checked':''}></label>`
-    : `<p class="note" style="text-align:center;margin-top:16px">Marcada pela recepção.</p>`;
+    <label class="toggle" for="humano"><span class="tx"><b>Assumir conversa</b><span>O agente para de responder esta pessoa. Responda pelo WhatsApp Business do celular.</span></span><input type="checkbox" class="sw" id="humano" ${conv.humano?'checked':''}></label>`
+    : `<p class="note" style="text-align:center;margin-top:16px">Marcado pela equipe.</p>`;
   abrirSheet(`
     <div class="hd"><h3 id="sheetTitle">${esc(c.paciente)}</h3><button class="x" aria-label="Fechar">${I.x}</button></div>
-    <p class="sline">${c.tipo==='urgencia'?'<span style="color:var(--bad);font-weight:700">Urgência</span> · ':''}${esc(c.motivo || TIPOS[c.tipo]?.label || '')}</p>
+    <p class="sline">${c.tipo==='urgencia'?'<span style="color:var(--bad);font-weight:700">Urgência</span> · ':''}${esc(c.motivo || (sv && sv.nome) || '')}</p>
     <div class="infobox">
-      <div class="r"><span>Quando</span><b>${fmtCurto(c.inicio)}, ${hm(c.inicio)}</b></div>
-      <div class="r"><span>Dentista</span><b>${esc(den.nome)}</b></div>
+      <div class="r"><span>Quando</span><b>${fmtCurto(c.inicio)}, ${hm(c.inicio)}–${hm(c.fim)}</b></div>
+      ${sv ? `<div class="r"><span>Serviço</span><b>${esc(sv.nome)}</b></div>` : ''}
+      <div class="r"><span>${esc(seg().prof)}</span><b>${esc(den.nome)}</b></div>
       <div class="r"><span>Situação</span><b>${lab}</b></div>
       <div class="r"><span>WhatsApp</span><b class="num">${esc(foneBR(c.telefone))}</b></div>
-      <div class="r"><span>Valor <small style="display:block;font-size:12px">${c.valor==null?'da tabela de '+(TIPOS[c.tipo]?.label||'').toLowerCase():'lançado nesta consulta'}</small></span><b><input class="vin num" id="cValor" type="number" min="0" step="5" inputmode="decimal" value="${valorDe(c)||''}" placeholder="R$ 0" aria-label="Valor da consulta"></b></div>
+      <div class="r"><span>Valor <small style="display:block;font-size:12px">${c.valor==null?'preço do serviço':'lançado neste atendimento'}</small></span><b><input class="vin num" id="cValor" type="number" min="0" step="5" inputmode="decimal" value="${valorDe(c)||''}" placeholder="R$ 0" aria-label="Valor"></b></div>
     </div>
     <div class="actions">
       ${principal}
       <a class="btn full" href="https://wa.me/${foneWa(c.telefone)}" target="_blank" rel="noopener">${I.wa}Abrir no WhatsApp</a>
     </div>
-    ${c.status!=='cancelada' ? `<div class="more"><button class="btn ghost small danger" data-st="cancelada">Cancelar consulta</button></div>` : ''}
+    ${c.status!=='cancelada' ? `<div class="more"><button class="btn ghost small danger" data-st="cancelada">Cancelar</button></div>` : ''}
     ${conversaHTML}
   `, atualizar);
   sheet.querySelector('.x').onclick = fecharSheet;
@@ -887,20 +1202,20 @@ async function abrirConsulta(id, atualizar){
   });
   $('#cValor').addEventListener('change', async e => {
     const v = e.target.value === '' ? null : Math.max(0, Number(e.target.value) || 0);
-    if (await atualizarConsulta(c, {valor:v}, v==null ? 'Valor voltou para o da tabela' : `Valor salvo: ${brl(v)}`)) abrirConsulta(c.id, true);
+    if (await atualizarConsulta(c, {valor:v}, v==null ? 'Valor voltou para o preço do serviço' : `Valor salvo: ${brl(v)}`)) abrirConsulta(c.id, true);
   });
   const sw = $('#humano');
   if (sw) sw.onchange = async () => {
     const humano = sw.checked;
-    const { error } = await sb.from('conversas').upsert({ telefone:c.telefone, humano, atualizado_em:new Date().toISOString() });
+    const { error } = await sb.from('conversas').upsert({ cliente_id:CLI.id, telefone:c.telefone, humano, atualizado_em:new Date().toISOString() }, { onConflict:'cliente_id,telefone' });
     if (error){ sw.checked = !humano; toast('Não consegui salvar: ' + error.message); return; }
     conversas.set(c.telefone, Object.assign(conversas.get(c.telefone) || {telefone:c.telefone}, {humano}));
-    toast(humano ? 'Agente pausado para esta paciente' : 'Agente voltou a responder');
+    toast(humano ? 'Agente pausado para esta pessoa' : 'Agente voltou a responder');
   };
   const box = $('#convBox');
   if (box){
     const carregarChat = async () => {
-      const { data, error } = await sb.from('mensagens').select('papel,texto,audio,criado_em').eq('telefone', c.telefone).order('criado_em', {ascending:false}).limit(80);
+      const { data, error } = await sb.from('mensagens').select('papel,texto,audio,criado_em').eq('cliente_id', CLI.id).eq('telefone', c.telefone).order('criado_em', {ascending:false}).limit(80);
       const ch = $('#chat'); if (!ch || abertaId !== c.id) return;
       if (error){ ch.innerHTML = `<div class="empty">${esc(error.message)}</div>`; return; }
       const msgs = data.reverse();
@@ -909,7 +1224,7 @@ async function abrirConsulta(id, atualizar){
       for (const m of msgs){
         const q = new Date(m.criado_em);
         if (!ultimoDia || !sameDay(ultimoDia, q)){ html += `<span class="daysep">${fmtCurto(q)}</span>`; ultimoDia = q; }
-        const who = m.papel==='paciente' ? esc(c.paciente.split(' ')[0]) : m.papel==='agente' ? `${I.bot}Agente` : `${I.user}Recepção`;
+        const who = m.papel==='paciente' ? esc(c.paciente.split(' ')[0]) : m.papel==='agente' ? `${I.bot}Agente` : `${I.user}Equipe`;
         html += `<div class="msg ${m.papel}"><div class="who">${who}</div>${m.audio?`<div class="aud">${I.mic}<i></i>áudio transcrito</div>`:''}${esc(m.texto)}<small>${hm(q)}</small></div>`;
       }
       ch.innerHTML = html || '<div class="empty">Sem mensagens.</div>';
@@ -927,7 +1242,7 @@ function abrirPaciente(key){
     <div class="hd"><h3 id="sheetTitle">${esc(p.nome)}</h3><button class="x" aria-label="Fechar">${I.x}</button></div>
     <div class="infobox" style="margin-top:12px">
       <div class="r"><span>WhatsApp</span><b class="num">${esc(foneBR(p.telefone))}</b></div>
-      <div class="r"><span>Consultas</span><b>${p.consultas.length}</b></div>
+      <div class="r"><span>Agendamentos</span><b>${p.consultas.length}</b></div>
       <div class="r"><span>Faltas</span><b>${p.faltas}</b></div>
       <div class="r"><span>Total atendido</span><b class="num">${brl(p.total)}</b></div>
     </div>
@@ -939,53 +1254,72 @@ function abrirPaciente(key){
 
 function abrirNova(){
   abertaId = abertaTelefone = null;
-  const diasOpts = [];
-  for (let i=0;i<30;i++){ const d = addDays(HOJE,i); if (slotsDoDia(d).length) diasOpts.push(d); }
+  const servs = servAtivos();
   abrirSheet(`
-    <div class="hd"><h3 id="sheetTitle">Nova consulta</h3><button class="x" aria-label="Fechar">${I.x}</button></div>
+    <div class="hd"><h3 id="sheetTitle">Novo agendamento</h3><button class="x" aria-label="Fechar">${I.x}</button></div>
     <form class="form" id="novaForm">
-      <label for="nNome">Nome da paciente<input id="nNome" required autocomplete="off"></label>
+      <label for="nNome">Nome<input id="nNome" required autocomplete="off"></label>
       <label for="nFone">WhatsApp<input id="nFone" inputmode="tel" placeholder="(13) 90000-0000" required autocomplete="off"></label>
       <div class="two">
-        <label for="nDen">Dentista<select id="nDen">${DENTISTAS.map(d=>`<option value="${esc(d.id)}">${esc(d.nome)}</option>`).join('')}</select></label>
-        <label for="nTipo">Tipo<select id="nTipo">${Object.entries(TIPOS).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}</select></label>
+        <label for="nServ">Serviço<select id="nServ">${servs.map(s=>`<option value="${s.id}">${esc(s.nome)} · ${s.duracao_min} min</option>`).join('')}</select></label>
+        <label for="nDen">${esc(seg().prof)}<select id="nDen">${DENTISTAS.map(d=>`<option value="${esc(d.id)}">${esc(d.nome)}</option>`).join('')}</select></label>
       </div>
       <div class="two">
-        <label for="nDia">Dia<select id="nDia">${diasOpts.map(d=>`<option value="${d.toISOString()}" ${sameDay(d,state.dia)?'selected':''}>${fmtCurto(d)}</option>`).join('')}</select></label>
+        <label for="nDia">Dia<select id="nDia"></select></label>
         <label for="nHora">Horário livre<select id="nHora"></select></label>
       </div>
-      <label for="nMot">Motivo<input id="nMot" placeholder="Ex.: limpeza, dor no siso" autocomplete="off"></label>
+      <div class="two">
+        <label for="nMot">Observação<input id="nMot" placeholder="Opcional" autocomplete="off"></label>
+        <label for="nRep">Repetir<select id="nRep"><option value="1">Não repetir</option><option value="4">Toda semana, 4 vezes</option><option value="8">Toda semana, 8 vezes</option><option value="12">Toda semana, 12 vezes</option></select></label>
+      </div>
+      <label class="toggle" for="nUrg" style="margin:0"><span class="tx"><b>Urgente</b><span>Aparece em destaque na agenda</span></span><input type="checkbox" class="sw" id="nUrg"></label>
       <div class="err" id="nErr"></div>
       <button class="btn primary" type="button" data-enviar style="justify-content:center">Agendar</button>
     </form>`);
   sheet.querySelector('.x').onclick = fecharSheet;
+  const durAtual = () => (servById($('#nServ').value) || {}).duracao_min || CFG.intervalo_min || 30;
+  const preencherDias = () => {
+    const dur = durAtual(), atual = $('#nDia').value;
+    const ds = []; for (let i=0;i<45;i++){ const d = addDays(HOJE,i); if (slotsDoDia(d, dur).length) ds.push(d); }
+    $('#nDia').innerHTML = ds.map(d=>`<option value="${d.toISOString()}" ${(atual ? d.toISOString()===atual : sameDay(d,state.dia))?'selected':''}>${fmtCurto(d)}</option>`).join('') || '<option value="">Sem dias abertos</option>';
+  };
   const preencherHoras = () => {
-    if (!$('#nDia').value){ $('#nHora').innerHTML = '<option value="">Sem dias abertos</option>'; return; }
-    const d = new Date($('#nDia').value), den = $('#nDen').value, now = agora();
-    const hs = slotsDoDia(d).filter(s => s > now && livre(den, s));
+    if (!$('#nDia').value){ $('#nHora').innerHTML = '<option value="">—</option>'; return; }
+    const d = new Date($('#nDia').value), den = $('#nDen').value, now = agora(), dur = durAtual();
+    const hs = slotsDoDia(d, dur).filter(s => s > now && livre(den, s, dur));
     $('#nHora').innerHTML = hs.length ? hs.map(s=>`<option value="${s.toISOString()}">${hm(s)}</option>`).join('') : '<option value="">Sem horário livre</option>';
   };
-  $('#nDia').onchange = preencherHoras; $('#nDen').onchange = preencherHoras; preencherHoras();
+  $('#nServ').onchange = () => { preencherDias(); preencherHoras(); };
+  $('#nDia').onchange = preencherHoras; $('#nDen').onchange = preencherHoras;
+  preencherDias(); preencherHoras();
   let enviando = false;
   aoEnviar($('#novaForm'), async () => {
     if (enviando) return;
     const nome = $('#nNome').value.trim(), fone = soDigitos($('#nFone').value), hora = $('#nHora').value;
     if (!nome || !fone){ $('#nErr').textContent = 'Preencha nome e WhatsApp.'; return; }
     if (fone.length < 10){ $('#nErr').textContent = 'Confira o WhatsApp: coloque o DDD e o número.'; return; }
-    if (!hora){ $('#nErr').textContent = 'Esse dia não tem horário livre para este dentista. Escolha outro dia ou dentista.'; return; }
+    if (!hora){ $('#nErr').textContent = 'Esse dia não tem horário livre. Escolha outro dia, serviço ou profissional.'; return; }
     enviando = true;
-    const tipo = $('#nTipo').value;
-    const { data, error } = await sb.from('consultas').insert({
-      paciente:nome, telefone:foneWa(fone), dentista:$('#nDen').value, inicio:hora, duracao_min:CFG.duracao_min,
-      tipo, motivo:$('#nMot').value.trim() || TIPOS[tipo].label, status:'agendada', origem:'recepcao'
-    }).select().single();
+    const sv = servById($('#nServ').value), dur = durAtual(), vezes = Number($('#nRep').value);
+    const base = { cliente_id:CLI.id, paciente:nome, telefone:foneWa(fone), dentista:$('#nDen').value, duracao_min:dur,
+      servico_id: sv ? sv.id : null, tipo: $('#nUrg').checked ? 'urgencia' : 'rotina',
+      motivo: $('#nMot').value.trim() || (sv ? sv.nome : ''), status:'agendada', origem:'recepcao' };
+    const criadas = []; const puladas = [];
+    for (let i = 0; i < vezes; i++){
+      const ini = addDays(new Date(hora), 7*i);
+      const { data, error } = await sb.from('consultas').insert(Object.assign({}, base, { inicio: ini.toISOString() })).select().single();
+      if (error){
+        if (i === 0){ enviando = false; $('#nErr').textContent = error.code==='23P01' || error.code==='23505' ? 'Esse horário acabou de ser ocupado. Escolha outro.' : 'Não consegui agendar: ' + error.message; return; }
+        puladas.push(fmtCurto(ini)); continue;
+      }
+      const c = deLinha(data); criadas.push(c);
+      if (!consultas.some(x => x.id===c.id)) consultas.push(c);
+    }
     enviando = false;
-    if (error){ $('#nErr').textContent = error.code==='23505' ? 'Esse horário acabou de ser ocupado. Escolha outro.' : 'Não consegui agendar: ' + error.message; return; }
-    const c = deLinha(data);
-    if (!consultas.some(x => x.id===c.id)) consultas.push(c);
+    const c = criadas[0];
     state.dia = sod(c.inicio); state.semana = segundaDa(c.inicio); state.tab = 'agenda'; state.flash = c.id;
     fecharSheet();
-    toast(`Consulta de ${nome.split(' ')[0]} marcada para ${fmtCurto(c.inicio)} às ${hm(c.inicio)}`);
+    toast(`${nome.split(' ')[0]}: ${fmtCurto(c.inicio)} às ${hm(c.inicio)}${criadas.length > 1 ? ` e mais ${criadas.length-1} semana${criadas.length>2?'s':''}` : ''}${puladas.length ? ` (ocupado em ${puladas.join(', ')})` : ''}`);
   });
 }
 
@@ -997,13 +1331,14 @@ function toast(txt, opts={}){
   t.innerHTML = `<span>${esc(txt)}</span>` + (opts.id ? `<button class="btn small" data-id="${opts.id}">Ver</button>` : '');
   requestAnimationFrame(() => t.classList.add('show'));
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), opts.id ? 7000 : 2600);
+  toastTimer = setTimeout(() => t.classList.remove('show'), opts.id ? 7000 : 3200);
 }
 
 /* ---------- eventos ---------- */
 document.addEventListener('click', e => {
   const tab = e.target.closest('nav.tabs button');
   if (tab){ if (tab.dataset.tab !== 'ajustes') rascunho = null; state.tab = tab.dataset.tab; render(); window.scrollTo({top:0}); return; }
+  if (e.target.closest('#trocaCli')){ escolherCliente(); return; }
   const idEl = e.target.closest('[data-id]');
   if (idEl && !e.target.closest('#overlay .x')){
     const id = idEl.dataset.id;
