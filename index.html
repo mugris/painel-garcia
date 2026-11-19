@@ -273,6 +273,9 @@ body.modo-admin nav.tabs{display:none}
 .amais summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14px}
 .amais .form{margin-top:10px}
 #trocaCli{flex:none}
+.topbtns{display:flex;gap:6px;flex:none;align-items:center}
+#atualizar.girando svg{animation:gira .8s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -307,7 +310,10 @@ body.modo-admin nav.tabs{display:none}
       <h1 id="nomeClinica">Carregando…</h1>
       <div class="sub"><span class="live" id="liveDot" aria-hidden="true"></span><span id="agentStatus">Conectando…</span></div>
     </div>
-    <button class="btn small hidden" id="trocaCli" type="button">Trocar</button>
+    <div class="topbtns">
+      <button class="btn small hidden" id="atualizar" type="button" aria-label="Atualizar agenda"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg>Atualizar</button>
+      <button class="btn small hidden" id="trocaCli" type="button">Trocar</button>
+    </div>
   </header>
 
   <main id="view"></main>
@@ -405,6 +411,8 @@ let CFG = null;                      // configuração normalizada (mesmo format
 let SERVICOS = [];                   // todos os serviços do cliente (ativos e inativos)
 let DENTISTAS = [];                  // profissionais, com cor
 let consultas = [];
+let orcamentos = [];                 // orçamentos que o agente retoma
+const ORC_ST = { aberto:['Agente vai retomar','warn'], respondeu:['Respondeu','ok'], agendou:['Agendou','ok'], fechou:['Fechou','ok'], perdido:['Não quis',''], encerrado:['Sem resposta',''] };
 const conversas = new Map();         // telefone -> {nome, humano}
 const CORES = ['var(--d1)','var(--d2)','var(--d3)','var(--d4)'];
 const denById = id => DENTISTAS.find(d=>d.id===id) || {id, nome:'Profissional removido', cor:'var(--muted)'};
@@ -496,11 +504,12 @@ let canal = null;
 async function carregarCliente(id){
   view.innerHTML = '<div class="loading">Carregando a agenda…</div>';
   const desde = addDays(sod(agora()), -180).toISOString();
-  const [rc, rs, rq, rv] = await Promise.all([
+  const [rc, rs, rq, rv, ro] = await Promise.all([
     sb.from('clientes').select('*').eq('id', id).single(),
     sb.from('servicos').select('*').eq('cliente_id', id).order('ordem'),
     sb.from('consultas').select('*').eq('cliente_id', id).gte('inicio', desde).order('inicio'),
-    sb.from('conversas').select('telefone,nome,humano').eq('cliente_id', id)
+    sb.from('conversas').select('telefone,nome,humano').eq('cliente_id', id),
+    sb.from('orcamentos').select('*').eq('cliente_id', id).order('criado_em', {ascending:false})
   ]);
   const erro = rc.error || rs.error || rq.error || rv.error;
   if (erro){ view.innerHTML = `<div class="empty">Não consegui ler os dados: ${esc(erro.message)}</div>`; return false; }
@@ -508,6 +517,7 @@ async function carregarCliente(id){
   SERVICOS = rs.data;
   consultas = rq.data.map(deLinha);
   conversas.clear(); rv.data.forEach(c => conversas.set(c.telefone, c));
+  orcamentos = ro.error ? [] : ro.data;   // sem a tabela ainda, o painel segue funcionando
   try { localStorage.setItem('og_cli', id); } catch(_){}
   state.dia = primeiroAberto(HOJE); state.semana = segundaDa(state.dia); state.dentista = 'todos'; rascunho = null;
   atualizarCabecalho();
@@ -536,6 +546,11 @@ function ouvir(id){
     .on('postgres_changes', {event:'*', schema:'public', table:'conversas', filter:f}, p => {
       if (p.new && p.new.telefone) conversas.set(p.new.telefone, p.new);
     })
+    .on('postgres_changes', {event:'*', schema:'public', table:'orcamentos', filter:f}, p => {
+      if (p.eventType === 'DELETE'){ orcamentos = orcamentos.filter(o => o.id !== p.old.id); }
+      else { const i = orcamentos.findIndex(o => o.id === p.new.id); if (i >= 0) orcamentos[i] = p.new; else orcamentos.unshift(p.new); }
+      redesenhar();
+    })
     .on('postgres_changes', {event:'*', schema:'public', table:'servicos', filter:f}, async () => {
       const { data } = await sb.from('servicos').select('*').eq('cliente_id', id).order('ordem');
       if (data) SERVICOS = data;
@@ -546,6 +561,33 @@ function ouvir(id){
     })
     .subscribe();
 }
+/* Busca de novo agendamentos, conversas e orçamentos (botão Atualizar e quando o app volta para a tela) */
+let atualizando = false;
+async function atualizarDados(avisar){
+  if (!CLI || atualizando) return;
+  atualizando = true;
+  const b = $('#atualizar'); if (b) b.classList.add('girando');
+  try {
+    const desde = addDays(sod(agora()), -180).toISOString();
+    const [rq, rv, ro] = await Promise.all([
+      sb.from('consultas').select('*').eq('cliente_id', CLI.id).gte('inicio', desde).order('inicio'),
+      sb.from('conversas').select('telefone,nome,humano').eq('cliente_id', CLI.id),
+      sb.from('orcamentos').select('*').eq('cliente_id', CLI.id).order('criado_em', {ascending:false})
+    ]);
+    if (rq.error) throw rq.error;
+    const antes = new Set(consultas.map(c => c.id));
+    consultas = rq.data.map(deLinha);
+    if (!rv.error){ conversas.clear(); rv.data.forEach(c => conversas.set(c.telefone, c)); }
+    if (!ro.error) orcamentos = ro.data;
+    const novas = consultas.filter(c => !antes.has(c.id) && c.status !== 'cancelada').length;
+    ouvir(CLI.id);   // reconecta o tempo real, que o celular costuma derrubar em segundo plano
+    redesenhar();
+    if (avisar) toast(novas ? `${novas} agendamento${novas>1?'s':''} novo${novas>1?'s':''}` : 'Agenda atualizada');
+  } catch(e){ if (avisar) toast('Não consegui atualizar: ' + (e.message || e)); }
+  finally { atualizando = false; if (b) b.classList.remove('girando'); }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') atualizarDados(false); });
+
 function redesenhar(){
   if (overlay.classList.contains('open')){
     if (abertaId && consultas.some(c => c.id===abertaId)) abrirConsulta(abertaId, true);
@@ -731,6 +773,7 @@ function renderResumo(){
       <p class="d">Realizados e agendados no mês. Cada um usa o valor lançado nele ou, se não tiver, o preço do serviço em Ajustes.</p>
       <div class="infobox tipos" style="margin:0">${linhasServ || '<div class="r"><span>Nenhum agendamento neste mês.</span></div>'}</div>
     </div>
+    ${orcHTML()}
     <div class="panel">
       <h3>Horário em que as pessoas marcam</h3>
       <p class="d">Agendamentos feitos pelo agente nos últimos 30 dias. Em azul, fora do expediente.</p>
@@ -740,6 +783,59 @@ function renderResumo(){
   $('#mPrev').onclick = () => { state.mes = new Date(ini.getFullYear(), ini.getMonth()-1, 1); renderResumo(); };
   $('#mNext').onclick = () => { if (!ehMesAtual){ state.mes = new Date(ini.getFullYear(), ini.getMonth()+1, 1); renderResumo(); } };
   const iv = $('#irValores'); if (iv) iv.onclick = () => { state.tab = 'ajustes'; state.focoServicos = true; render(); };
+}
+
+function orcHTML(){
+  const abertos = orcamentos.filter(o => o.status==='aberto' || o.status==='respondeu');
+  const ini = state.mes, fim = new Date(ini.getFullYear(), ini.getMonth()+1, 1);
+  const recup = orcamentos.filter(o => (o.status==='agendou' || o.status==='fechou') && new Date(o.atualizado_em) >= ini && new Date(o.atualizado_em) < fim);
+  const soma = arr => arr.reduce((s,o) => s + Number(o.valor||0), 0);
+  const ligado = CFG.retorno_orcamento && CFG.retorno_orcamento.ligado;
+  const linhas = abertos.slice(0, 30).map(o => {
+    const [lab, cls] = ORC_ST[o.status] || ['',''];
+    return `<button class="prow" data-orc="${o.id}"><span class="tx"><b>${esc(o.paciente)}</b><span>${esc(o.tratamento)}${o.valor ? ' · <span class="num">'+brl(Number(o.valor))+'</span>' : ''}</span></span><span class="rt"><span class="st ${cls}">${lab}</span>${o.tentativas ? `<small>${o.tentativas} contato${o.tentativas>1?'s':''}</small>` : ''}</span></button>`;
+  }).join('');
+  return `<div class="panel">
+      <h3>Orçamentos não fechados</h3>
+      <p class="d">${ligado ? 'O agente retoma cada um 3, 7 e 15 dias depois, até a pessoa responder ou marcar.' : 'O retorno automático está desligado em Ajustes.'} Registre um orçamento abrindo a avaliação na agenda.</p>
+      <div class="trio" style="margin-bottom:10px;grid-template-columns:1fr 1fr">
+        <div class="mini"><b class="num">${abertos.length}</b><span>em aberto · ${brl(soma(abertos))}</span></div>
+        <div class="mini"><b class="num">${brl(soma(recup))}</b><span>recuperados no mês (${recup.length})</span></div>
+      </div>
+      <div class="plist">${linhas || '<div class="empty">Nenhum orçamento em aberto.</div>'}</div>
+    </div>`;
+}
+function abrirOrcamento(id){
+  const o = orcamentos.find(x => x.id===id); if (!o) return;
+  abertaId = abertaTelefone = null;
+  const [lab] = ORC_ST[o.status] || [''];
+  const ativo = o.status==='aberto' || o.status==='respondeu';
+  abrirSheet(`
+    <div class="hd"><h3 id="sheetTitle">${esc(o.paciente)}</h3><button class="x" aria-label="Fechar">${I.x}</button></div>
+    <p class="sline">Orçamento de ${esc(o.tratamento)}</p>
+    <div class="infobox">
+      <div class="r"><span>Valor</span><b class="num">${o.valor ? brl(Number(o.valor)) : '—'}</b></div>
+      <div class="r"><span>Feito em</span><b>${fmtCurto(new Date(o.criado_em))}</b></div>
+      <div class="r"><span>Situação</span><b>${lab}</b></div>
+      <div class="r"><span>Contatos do agente</span><b>${o.tentativas}${o.ultimo_contato ? ' · último ' + relTempo(new Date(o.ultimo_contato)) : ''}</b></div>
+      <div class="r"><span>WhatsApp</span><b class="num">${esc(foneBR(o.telefone))}</b></div>
+    </div>
+    <div class="actions">
+      ${ativo ? `<button class="btn primary" data-orc-st="fechou">Fechou</button><button class="btn" data-orc-st="perdido">Não quis</button>` : `<button class="btn" data-orc-st="aberto">Voltar a retomar</button>`}
+      <a class="btn full" href="https://wa.me/${foneWa(o.telefone)}" target="_blank" rel="noopener">${I.wa}Abrir no WhatsApp</a>
+    </div>`);
+  sheet.querySelector('.x').onclick = fecharSheet;
+  sheet.querySelectorAll('[data-orc-st]').forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    const st = b.dataset.orcSt;
+    const campos = { status: st, atualizado_em: new Date().toISOString() };
+    if (st === 'aberto') Object.assign(campos, { tentativas: 0, criado_em: new Date().toISOString(), ultimo_contato: null });
+    const { error } = await sb.from('orcamentos').update(campos).eq('id', o.id);
+    if (error){ b.disabled = false; toast('Não consegui salvar: ' + error.message); return; }
+    Object.assign(o, campos);
+    toast(st==='fechou' ? 'Orçamento fechado!' : st==='perdido' ? 'O agente não vai mais procurar essa pessoa' : 'O agente volta a retomar em 3 dias');
+    abrirOrcamento(o.id);
+  });
 }
 
 /* ---------- Ajustes (gravam no cliente e nos serviços, que o agente lê) ---------- */
@@ -805,6 +901,9 @@ function renderAjustes(){
         <p class="d">Desligado, as mensagens chegam só para a equipe responder no WhatsApp Business.</p>
         <div class="form">
           <label class="toggle" for="cAg"><span class="tx"><b>Agente atendendo</b><span>Responde e agenda sozinho</span></span><input type="checkbox" class="sw acc" id="cAg" ${c.agente_ligado?'checked':''}></label>
+          <label class="toggle" for="cLd"><span class="tx"><b>Lembrete 1 dia antes</b><span>Pede para confirmar ou remarcar</span></span><input type="checkbox" class="sw" id="cLd" ${!c.lembretes || c.lembretes.dia!==false?'checked':''}></label>
+          <label class="toggle" for="cLh"><span class="tx"><b>Lembrete 1 hora antes</b><span>Avisa que o horário está chegando</span></span><input type="checkbox" class="sw" id="cLh" ${!c.lembretes || c.lembretes.hora!==false?'checked':''}></label>
+          <label class="toggle" for="cOrc"><span class="tx"><b>Retomar orçamentos</b><span>Procura quem não fechou 3, 7 e 15 dias depois</span></span><input type="checkbox" class="sw" id="cOrc" ${c.retorno_orcamento && c.retorno_orcamento.ligado?'checked':''}></label>
           <label class="toggle" for="cPre"><span class="tx"><b>Informar preços</b><span>O agente diz o preço dos serviços quando perguntarem</span></span><input type="checkbox" class="sw" id="cPre" ${c.informar_precos?'checked':''}></label>
           <label for="cUrg">WhatsApp que recebe os avisos urgentes<input id="cUrg" inputmode="tel" placeholder="(13) 90000-0000" value="${esc(c.whats_urgencia||'')}" autocomplete="off"></label>
           <label for="cExtra">Instruções extras para o agente<textarea id="cExtra" rows="3" placeholder="Ex.: aceitamos Pix e cartão; estacionamento na rua de trás; não atendemos convênio">${esc(c.instrucoes_extras||'')}</textarea></label>
@@ -877,6 +976,8 @@ function lerCampos(){
   c.intervalo_min = Number($('#cInt').value);
   c.agente_ligado = $('#cAg').checked;
   c.informar_precos = $('#cPre').checked;
+  c.lembretes = { dia: $('#cLd').checked, hora: $('#cLh').checked };
+  c.retorno_orcamento = Object.assign({ dias:[3,7,15] }, c.retorno_orcamento || {}, { ligado: $('#cOrc').checked });
   c.whats_urgencia = $('#cUrg').value.trim();
   c.instrucoes_extras = $('#cExtra').value.trim();
   rascunho.servicos.forEach((s,i) => {
@@ -935,6 +1036,7 @@ function atualizarCabecalho(){
   $('#tabPessoas').textContent = seg().pessoas;
   $('#fabTxt').textContent = 'Novo agendamento';
   $('#trocaCli').classList.toggle('hidden', !(meusClientes.length > 1 || sessao.admin));
+  $('#atualizar').classList.remove('hidden');
 }
 
 /* ---------- administração (só para quem está em "admins") ---------- */
@@ -944,6 +1046,7 @@ async function renderAdmin(){
   $('#agentStatus').textContent = `${meusClientes.length} cliente${meusClientes.length===1?'':'s'}`;
   $('#liveDot').classList.remove('off');
   $('#trocaCli').classList.add('hidden');
+  $('#atualizar').classList.add('hidden');
   if (!view.querySelector('.alist')) view.innerHTML = '<div class="loading">Carregando clientes…</div>';
   const [rc, rr] = await Promise.all([
     sb.from('clientes').select('id,nome,segmento,ativo,phone_number_id,plano,criado_em').order('nome'),
@@ -1155,6 +1258,23 @@ async function atualizarConsulta(c, campos, msg){
   return true;
 }
 
+function orcDaConsultaHTML(c){
+  if (c.status==='cancelada') return '';
+  const o = orcamentos.find(x => x.consulta_id===c.id);
+  if (o){
+    const [lab, cls] = ORC_ST[o.status] || ['',''];
+    return `<div class="sec">Orçamento</div><div class="plist"><button class="prow" data-orc="${o.id}"><span class="tx"><b>${esc(o.tratamento)}</b><span class="num">${o.valor ? brl(Number(o.valor)) : 'sem valor'}</span></span><span class="rt"><span class="st ${cls}">${lab}</span></span></button></div>`;
+  }
+  return `<div class="more"><button class="btn small" id="orcGo" type="button">Registrar orçamento que não fechou</button></div>
+    <div class="form" id="orcForm" hidden style="margin-top:8px">
+      <div class="two">
+        <label for="oTrat">Tratamento<input id="oTrat" placeholder="Ex.: implante" autocomplete="off"></label>
+        <label for="oVal">Valor (R$)<input id="oVal" type="number" min="0" step="50" inputmode="decimal" placeholder="Opcional"></label>
+      </div>
+      <div class="err" id="oErr"></div>
+      <button class="btn primary" type="button" id="orcSalvar" style="justify-content:center">Salvar orçamento</button>
+    </div>`;
+}
 async function abrirConsulta(id, atualizar){
   const c = consultas.find(x => x.id===id); if (!c) return;
   if (!atualizar) marcarVisto(c.id);
@@ -1190,6 +1310,7 @@ async function abrirConsulta(id, atualizar){
       ${principal}
       <a class="btn full" href="https://wa.me/${foneWa(c.telefone)}" target="_blank" rel="noopener">${I.wa}Abrir no WhatsApp</a>
     </div>
+    ${orcDaConsultaHTML(c)}
     ${c.status!=='cancelada' ? `<div class="more"><button class="btn ghost small danger" data-st="cancelada">Cancelar</button></div>` : ''}
     ${conversaHTML}
   `, atualizar);
@@ -1200,6 +1321,17 @@ async function abrirConsulta(id, atualizar){
     if (await atualizarConsulta(c, {status:st}, `${c.paciente.split(' ')[0]}: ${STATUS_CURTO[st][0].toLowerCase()}`)) abrirConsulta(c.id, true);
     else b.disabled = false;
   });
+  const og = $('#orcGo'); if (og) og.onclick = () => { $('#orcForm').hidden = false; og.hidden = true; $('#oTrat').focus(); };
+  const os = $('#orcSalvar'); if (os) os.onclick = async () => {
+    const trat = $('#oTrat').value.trim(), val = $('#oVal').value;
+    if (!trat){ $('#oErr').textContent = 'Escreva qual tratamento foi orçado.'; return; }
+    os.disabled = true;
+    const { data, error } = await sb.from('orcamentos').insert({ cliente_id:CLI.id, consulta_id:c.id, paciente:c.paciente, telefone:c.telefone, tratamento:trat, valor: val==='' ? null : Math.max(0, Number(val)||0) }).select().single();
+    if (error){ os.disabled = false; $('#oErr').textContent = 'Não consegui salvar: ' + error.message; return; }
+    if (!orcamentos.some(o => o.id===data.id)) orcamentos.unshift(data);
+    toast(CFG.retorno_orcamento && CFG.retorno_orcamento.ligado ? 'Orçamento registrado. O agente retoma em 3 dias.' : 'Orçamento registrado. Ligue "Retomar orçamentos" em Ajustes.');
+    abrirConsulta(c.id, true);
+  };
   $('#cValor').addEventListener('change', async e => {
     const v = e.target.value === '' ? null : Math.max(0, Number(e.target.value) || 0);
     if (await atualizarConsulta(c, {valor:v}, v==null ? 'Valor voltou para o preço do serviço' : `Valor salvo: ${brl(v)}`)) abrirConsulta(c.id, true);
@@ -1339,6 +1471,7 @@ document.addEventListener('click', e => {
   const tab = e.target.closest('nav.tabs button');
   if (tab){ if (tab.dataset.tab !== 'ajustes') rascunho = null; state.tab = tab.dataset.tab; render(); window.scrollTo({top:0}); return; }
   if (e.target.closest('#trocaCli')){ escolherCliente(); return; }
+  if (e.target.closest('#atualizar')){ atualizarDados(true); return; }
   const idEl = e.target.closest('[data-id]');
   if (idEl && !e.target.closest('#overlay .x')){
     const id = idEl.dataset.id;
@@ -1346,6 +1479,7 @@ document.addEventListener('click', e => {
     abrirConsulta(id); return;
   }
   const pac = e.target.closest('[data-pac]'); if (pac){ abrirPaciente(pac.dataset.pac); return; }
+  const orc = e.target.closest('[data-orc]'); if (orc){ abrirOrcamento(orc.dataset.orc); return; }
   const dia = e.target.closest('[data-dia]'); if (dia){ state.dia = new Date(dia.dataset.dia); renderAgenda(); return; }
   if (e.target.closest('#prevW')){ state.semana = addDays(state.semana,-7); state.dia = primeiroAberto(state.semana); renderAgenda(); return; }
   if (e.target.closest('#nextW')){ state.semana = addDays(state.semana,7); state.dia = primeiroAberto(state.semana); renderAgenda(); return; }
